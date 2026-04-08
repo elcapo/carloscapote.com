@@ -1,0 +1,250 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const articulos = (await getCollection('articulos'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 4);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<Layout title="Carlos Capote — Programador y defensor del software libre">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow">Carlos Capote · Portfolio</p>
+      <h1 class="hero-title">
+        Programar, escribir<br />y defender lo libre.
+      </h1>
+      <p class="hero-lede">
+        Soy programador. Escribo casos de uso sobre los proyectos en los que trabajo y defiendo el software y la cultura libres como una forma sensata de construir y compartir conocimiento.
+      </p>
+      <div class="hero-actions">
+        <a href="/articulos" class="btn">Leer los artículos →</a>
+        <a href="#proyectos" class="btn btn--ghost">Ver proyectos</a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- MANIFIESTO -->
+  <section class="manifesto">
+    <div class="container grid-12">
+      <div class="manifesto-label">
+        <p class="eyebrow">01 · Sobre el sitio</p>
+      </div>
+      <div class="manifesto-body">
+        <h2>
+          Cada artículo es un caso de uso: una idea, una decisión técnica, un proyecto que ha pasado por mis manos.
+        </h2>
+        <p>
+          No escribo aquí tutoriales genéricos. Escribo sobre cosas que he construido, por qué las he construido, qué he aprendido y dónde encajan en una conversación más larga sobre tecnología, conocimiento y bien común.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- ARTÍCULOS RECIENTES -->
+  <section id="proyectos" class="articles">
+    <div class="container">
+      <header class="articles-header">
+        <p class="eyebrow">02 · Últimos artículos</p>
+        <h2>Casos de uso recientes</h2>
+      </header>
+
+      <ul class="articles-list">
+        {articulos.map((a, i) => (
+          <li class="article-row">
+            <a href={`/articulos/${a.id}`} class="article-link">
+              <span class="article-num mono">{String(i + 1).padStart(2, '0')}</span>
+              <div class="article-content">
+                <h3 class="article-title">{a.data.title}</h3>
+                <p class="article-desc">{a.data.description}</p>
+                <div class="article-meta">
+                  <span class="mono">{fmt(a.data.pubDate)}</span>
+                  {a.data.tags.slice(0, 3).map(t => <span class="tag">{t}</span>)}
+                </div>
+              </div>
+              <span class="article-arrow" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <div class="articles-footer">
+        <a href="/articulos" class="btn btn--ghost">Ver todos los artículos →</a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- LIBRE -->
+  <section class="free">
+    <div class="container grid-12">
+      <div class="free-label">
+        <p class="eyebrow">03 · Posicionamiento</p>
+      </div>
+      <div class="free-body">
+        <h2>
+          Defiendo el software<br />y la cultura libres.
+        </h2>
+        <p>
+          Creo que el conocimiento técnico debería poder leerse, copiarse, modificarse y compartirse. Casi todo lo que publico aquí está bajo licencias libres, y muchos de los proyectos sobre los que escribo nacen precisamente para abrir cosas que estaban cerradas, ya sean datos públicos, modelos opacos o herramientas atadas a un proveedor.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  .hero {
+    padding-block: clamp(5rem, 12vw, 10rem) clamp(4rem, 10vw, 8rem);
+  }
+
+  .hero-title {
+    margin-top: 1.5rem;
+    max-width: 14ch;
+  }
+
+  .hero-lede {
+    font-size: clamp(1.125rem, 1.75vw, 1.375rem);
+    line-height: 1.55;
+    max-width: 56ch;
+    margin-top: 2rem;
+    color: var(--color-secondary);
+  }
+
+  .hero-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  /* Manifesto / Free shared layout */
+  .manifesto, .free {
+    padding-block: clamp(4rem, 9vw, 7rem);
+  }
+  .manifesto-label, .free-label { grid-column: span 12; }
+  .manifesto-body, .free-body { grid-column: span 12; }
+
+  @media (min-width: 900px) {
+    .manifesto-label, .free-label { grid-column: span 4; }
+    .manifesto-body, .free-body { grid-column: span 8; }
+  }
+
+  .manifesto-body h2,
+  .free-body h2 {
+    max-width: 22ch;
+  }
+  .manifesto-body p,
+  .free-body p {
+    margin-top: 2rem;
+    font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+    line-height: 1.6;
+    color: var(--color-secondary);
+    max-width: 60ch;
+  }
+
+  /* Articles list */
+  .articles-header {
+    margin-bottom: 3rem;
+  }
+  .articles-header h2 {
+    margin-top: 1rem;
+  }
+
+  .articles-list {
+    list-style: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .article-row {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .article-link {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: 2rem;
+    color: var(--color-foreground);
+    transition: background var(--dur) var(--ease), padding var(--dur) var(--ease);
+  }
+  .article-link:hover {
+    background: var(--color-muted);
+    padding-inline: 1.25rem;
+  }
+
+  .article-num {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    padding-top: 0.5rem;
+    min-width: 2.5rem;
+  }
+
+  .article-title {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    line-height: 1.15;
+    transition: color var(--dur) var(--ease);
+  }
+  .article-link:hover .article-title { color: var(--color-accent); }
+
+  .article-desc {
+    margin-top: 0.75rem;
+    color: var(--color-secondary);
+    max-width: 68ch;
+    font-size: 1.0625rem;
+  }
+
+  .article-meta {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+  }
+
+  .article-arrow {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-muted-foreground);
+    align-self: center;
+    transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .article-link:hover .article-arrow {
+    color: var(--color-accent);
+    transform: translateX(4px);
+  }
+
+  .articles-footer {
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 640px) {
+    .article-link {
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+    }
+    .article-arrow { display: none; }
+  }
+</style>

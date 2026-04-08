@@ -1,0 +1,172 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const articulos = await getCollection('articulos');
+  return articulos.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<Layout title={`${entry.data.title} — Carlos Capote`} description={entry.data.description}>
+  <article class="article">
+    <header class="article-header">
+      <div class="container narrow">
+        <p class="eyebrow">
+          <a href="/articulos">← Volver al archivo</a>
+        </p>
+        <h1 class="article-title">{entry.data.title}</h1>
+        <p class="article-lede">{entry.data.description}</p>
+
+        <div class="article-meta">
+          <span class="mono">{fmt(entry.data.pubDate)}</span>
+          {entry.data.draft && <span class="badge">Borrador</span>}
+          {entry.data.tags.map(t => <span class="tag">{t}</span>)}
+        </div>
+
+        {entry.data.projectUrl && (
+          <p class="project-link">
+            <a href={entry.data.projectUrl} rel="noopener">
+              Proyecto: {entry.data.project} ↗
+            </a>
+          </p>
+        )}
+      </div>
+    </header>
+
+    <hr class="rule" />
+
+    <div class="container narrow">
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    <hr class="rule" />
+
+    <div class="container narrow">
+      <div class="article-footer">
+        <a href="/articulos" class="btn btn--ghost">← Más artículos</a>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .narrow { max-width: 760px; }
+
+  .article-header {
+    padding-block: clamp(4rem, 10vw, 8rem) clamp(3rem, 6vw, 5rem);
+  }
+  .article-title {
+    margin-top: 1.5rem;
+    font-size: clamp(2.25rem, 5.5vw, 4.5rem);
+  }
+  .article-lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+    line-height: 1.55;
+    color: var(--color-secondary);
+    max-width: 60ch;
+  }
+  .article-meta {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    text-transform: uppercase;
+  }
+  .project-link {
+    margin-top: 1.75rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .prose {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    font-size: 1.125rem;
+    line-height: 1.75;
+    color: var(--color-foreground);
+  }
+
+  .prose :global(h2) {
+    font-size: clamp(1.625rem, 2.6vw, 2.25rem);
+    margin-top: 3.5rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.15;
+  }
+  .prose :global(h3) {
+    font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  .prose :global(p) {
+    margin-bottom: 1.5rem;
+    max-width: 68ch;
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    max-width: 68ch;
+  }
+  .prose :global(li) { margin-bottom: 0.5rem; }
+  .prose :global(strong) { font-weight: 700; color: var(--color-foreground); }
+  .prose :global(blockquote) {
+    margin: 2rem 0;
+    padding: 1rem 1.5rem;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-muted);
+    font-style: italic;
+    color: var(--color-secondary);
+  }
+  .prose :global(blockquote p) { margin: 0; }
+  .prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.125rem 0.375rem;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .prose :global(pre) {
+    margin: 2rem 0;
+    padding: 1.25rem;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+  }
+  .prose :global(pre code) {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .prose :global(a) { text-decoration: underline; text-underline-offset: 3px; }
+
+  .article-footer {
+    padding-block: 3rem 5rem;
+  }
+</style>

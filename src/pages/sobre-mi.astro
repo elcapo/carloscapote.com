@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Sobre mí — Carlos Capote"
+  description="Carlos Capote: programador y defensor del software y la cultura libres."
+>
+  <section class="page-head">
+    <div class="container narrow">
+      <p class="eyebrow">Bio</p>
+      <h1>Sobre mí</h1>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section class="bio">
+    <div class="container narrow">
+      <p class="lede">
+        Soy Carlos Capote. Programo, escribo y defiendo el software y la cultura libres.
+      </p>
+      <p>
+        Este sitio funciona como un cuaderno público de los proyectos en los que estoy trabajando. Casi todo lo que aparece aquí son casos de uso: artículos largos sobre algo concreto que he construido, por qué he tomado las decisiones que he tomado y qué he aprendido por el camino.
+      </p>
+      <p>
+        Algunos de los temas que más aparecen: modelos de lenguaje y herramientas para entenderlos por dentro, transparencia administrativa y datos abiertos, herramientas pequeñas y bien documentadas, y todo lo que ayude a que el conocimiento técnico pueda leerse, copiarse y compartirse.
+      </p>
+      <p>
+        Si quieres escribirme o ver lo que publico, los enlaces relevantes están en el pie de página.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .narrow { max-width: 720px; }
+  .page-head {
+    padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 6vw, 5rem);
+  }
+  .page-head h1 { margin-top: 1.5rem; }
+  .bio {
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 11vw, 8rem);
+  }
+  .lede {
+    font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+    line-height: 1.4;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    color: var(--color-foreground);
+    margin-bottom: 2.5rem;
+    max-width: 28ch;
+  }
+  .bio p {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--color-secondary);
+    margin-bottom: 1.5rem;
+    max-width: 64ch;
+  }
+</style>

@@ -1,0 +1,149 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const articulos = (await getCollection('articulos'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<Layout
+  title="Artículos — Carlos Capote"
+  description="Casos de uso y ensayos sobre los proyectos en los que trabajo: software libre, modelos de lenguaje, datos abiertos y herramientas."
+>
+  <section class="page-head">
+    <div class="container">
+      <p class="eyebrow">Archivo</p>
+      <h1>Artículos</h1>
+      <p class="lede">
+        Casos de uso, ensayos y notas largas sobre proyectos en los que estoy o he estado trabajando. Algunos están en preparación.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section class="list-section">
+    <div class="container">
+      <ul class="articles-list">
+        {articulos.map((a, i) => (
+          <li class="article-row">
+            <a href={`/articulos/${a.id}`} class="article-link">
+              <span class="article-num mono">{String(articulos.length - i).padStart(2, '0')}</span>
+              <div class="article-content">
+                <h2 class="article-title">{a.data.title}</h2>
+                <p class="article-desc">{a.data.description}</p>
+                <div class="article-meta">
+                  <span class="mono">{fmt(a.data.pubDate)}</span>
+                  {a.data.draft && <span class="badge">Borrador</span>}
+                  {a.data.tags.map(t => <span class="tag">{t}</span>)}
+                </div>
+              </div>
+              <span class="article-arrow" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-head {
+    padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 7vw, 5rem);
+  }
+  .page-head h1 {
+    margin-top: 1.5rem;
+  }
+  .lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 1.75vw, 1.375rem);
+    line-height: 1.55;
+    max-width: 56ch;
+    color: var(--color-secondary);
+  }
+
+  .list-section {
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 11vw, 8rem);
+  }
+
+  .articles-list {
+    list-style: none;
+    border-top: 1px solid var(--color-border);
+  }
+  .article-row { border-bottom: 1px solid var(--color-border); }
+
+  .article-link {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: 2.25rem;
+    color: var(--color-foreground);
+    transition: background var(--dur) var(--ease), padding var(--dur) var(--ease);
+  }
+  .article-link:hover {
+    background: var(--color-muted);
+    padding-inline: 1.25rem;
+  }
+
+  .article-num {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    padding-top: 0.5rem;
+    min-width: 2.5rem;
+  }
+  .article-title {
+    font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+    line-height: 1.15;
+    transition: color var(--dur) var(--ease);
+  }
+  .article-link:hover .article-title { color: var(--color-accent); }
+  .article-desc {
+    margin-top: 0.75rem;
+    color: var(--color-secondary);
+    max-width: 68ch;
+  }
+  .article-meta {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.625rem;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    text-transform: uppercase;
+  }
+  .article-arrow {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-muted-foreground);
+    align-self: center;
+    transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .article-link:hover .article-arrow {
+    color: var(--color-accent);
+    transform: translateX(4px);
+  }
+  @media (max-width: 640px) {
+    .article-link { grid-template-columns: auto 1fr; gap: 1rem; }
+    .article-arrow { display: none; }
+  }
+</style>

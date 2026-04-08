@@ -1,0 +1,110 @@
+---
+const path = Astro.url.pathname;
+const isActive = (p: string) =>
+  p === '/' ? path === '/' : path.startsWith(p);
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="/" class="logo" aria-label="Carlos Capote — Inicio">
+      <span class="logo-mark">CC</span>
+      <span class="logo-name">Carlos Capote</span>
+    </a>
+    <nav aria-label="Principal">
+      <ul>
+        <li>
+          <a href="/" class:list={[{ active: isActive('/') && path === '/' }]}>
+            Inicio
+          </a>
+        </li>
+        <li>
+          <a href="/articulos" class:list={[{ active: isActive('/articulos') }]}>
+            Artículos
+          </a>
+        </li>
+        <li>
+          <a href="/sobre-mi" class:list={[{ active: isActive('/sobre-mi') }]}>
+            Sobre mí
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <hr class="rule" />
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--color-background) 90%, transparent);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    min-height: 72px;
+    padding-block: 1rem;
+  }
+  .logo {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    color: var(--color-foreground);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .logo-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    font-size: 0.875rem;
+    font-weight: 800;
+    align-self: center;
+  }
+  .logo-name {
+    font-size: 1.0625rem;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 0.25rem;
+  }
+  nav a {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    color: var(--color-foreground);
+    padding: 0.5rem 0.875rem;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    transition: color var(--dur) var(--ease);
+    position: relative;
+  }
+  nav a:hover { color: var(--color-accent); }
+  nav a.active { color: var(--color-accent); }
+  nav a.active::after {
+    content: '';
+    position: absolute;
+    left: 0.875rem;
+    right: 0.875rem;
+    bottom: 0.375rem;
+    height: 2px;
+    background: currentColor;
+  }
+
+  @media (max-width: 540px) {
+    .logo-name { display: none; }
+    nav a { padding: 0.5rem 0.625rem; font-size: 0.875rem; }
+  }
+</style>

@@ -1,0 +1,54 @@
+---
+title: "Chiquito: ejecutar modelos enormes en una GPU pequeña"
+description: "Inferencia capa a capa, precarga en RAM y ventanas deslizantes para correr modelos de 32B parámetros en hardware de andar por casa, con la idea de estudiarlos por dentro."
+pubDate: 2026-02-14
+tags: ["LLM", "Python", "GPU", "educativo"]
+project: "Chiquito"
+projectUrl: "https://github.com/elcapo/chiquito"
+draft: true
+---
+
+## La VRAM es el cuello de botella
+
+Si quieres estudiar cómo funciona un modelo de lenguaje grande por dentro, lo primero que descubres es que ni siquiera puedes cargarlo. Un modelo de 32B parámetros en precisión completa ocupa decenas de gigas de VRAM, y las GPUs de consumo se quedan muy lejos.
+
+Chiquito es mi intento de resolver ese problema sin renunciar a usar el modelo "de verdad". La idea es simple pero efectiva: **no cargues el modelo entero en la GPU; cárgalo capa a capa**.
+
+## Cómo funciona
+
+Chiquito implementa inferencia secuencial por capas: en cada paso del forward pass, mueve a la GPU solo la capa que toca calcular, ejecuta, y libera. Esto convierte el problema de "necesito 65 GB de VRAM" en "necesito el tamaño de la capa más grande". A partir de esa idea base, hay tres optimizaciones que merece la pena contar:
+
+### 1. Precarga en RAM (en lugar de leer de disco)
+
+Está inspirado en AirLLM, pero con una diferencia importante: en vez de leer las capas desde el SSD en cada forward pass, **Chiquito las precarga a RAM** y las mueve de RAM a GPU vía PCIe cuando hace falta.
+
+¿Por qué? Porque **PCIe es entre 2 y 5 veces más rápido que NVMe**. Si tienes RAM suficiente, mantenerlas en memoria principal es estrictamente mejor.
+
+### 2. Ventana deslizante para modelos que no caben en RAM
+
+Cuando ni siquiera la RAM es suficiente, Chiquito mantiene una ventana de N capas cargadas y un hilo en segundo plano va prefetcheando las siguientes mientras la GPU trabaja. Si la ventana está bien dimensionada, la GPU nunca se queda esperando.
+
+### 3. Cuantización al vuelo
+
+Con `bitsandbytes` se puede aplicar cuantización a 4 u 8 bits sobre la marcha. Para un modelo de 32B, eso baja el footprint de memoria de unos 65 GB a unos 16 GB.
+
+## Resultados de benchmark
+
+Probando con un modelo de 32B, los tres modos (precarga completa, ventana deslizante, ventana mínima) producen resultados prácticamente idénticos en velocidad: alrededor de **1857 tokens/segundo**. Esto confirma que el prefetch en background hace su trabajo y que el cuello de botella real está en la GPU, no en el transporte de datos.
+
+## Para qué (no) sirve Chiquito
+
+Chiquito **no** está pensado para servir modelos en producción ni para batir benchmarks de throughput. Está pensado para que puedas:
+
+- Cargar un modelo grande en una máquina modesta.
+- Hacer forward passes manualmente, capa a capa.
+- Inspeccionar activaciones intermedias, atenciones, gradientes.
+- Entender, en suma, **qué hace cada capa** en lugar de tratar el modelo como una caja negra.
+
+## Próximos pasos
+
+- Documentar mejor el API para que sea cómodo "engancharse" a una capa concreta y volcar tensores intermedios.
+- Compatibilidad con más arquitecturas más allá de las basadas en LLaMA.
+- Notebooks didácticos que recorran un forward pass completo paso a paso.
+
+> *Borrador en preparación. En la versión final incluiré diagramas del flujo de datos entre disco, RAM y GPU, y una comparativa más detallada con AirLLM y otros enfoques.*
