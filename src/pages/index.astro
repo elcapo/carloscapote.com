@@ -1,13 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ArticlesList from '../components/ArticlesList.astro';
 import { getCollection } from 'astro:content';
 
 const articulos = (await getCollection('articulos'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, 4);
-
-const fmt = (d: Date) =>
-  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 ---
 
 <Layout title="Carlos Capote — Programador y defensor del software libre">
@@ -59,24 +57,13 @@ const fmt = (d: Date) =>
         <h2 class="display display--md">Casos<br />de uso<br />recientes.</h2>
       </header>
 
-      <ul class="articles-list">
-        {articulos.map((a, i) => (
-          <li class="article-row">
-            <a href={`/articulos/${a.id}`} class="article-link">
-              <span class="article-num mono">{String(i + 1).padStart(2, '0')}</span>
-              <div class="article-content">
-                <h3 class="article-title">{a.data.title}</h3>
-                <p class="article-desc">{a.data.description}</p>
-                <div class="article-meta">
-                  <span class="mono">{fmt(a.data.pubDate)}</span>
-                  {a.data.tags.slice(0, 3).map(t => <span class="tag">{t}</span>)}
-                </div>
-              </div>
-              <span class="article-arrow" aria-hidden="true">→</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      <ArticlesList
+        articulos={articulos}
+        headingLevel="h3"
+        numbering="asc"
+        maxTags={3}
+        showDraft
+      />
 
       <div class="articles-footer">
         <a href="/articulos" class="btn btn--ghost">Ver todos los artículos →</a>
@@ -180,90 +167,8 @@ const fmt = (d: Date) =>
     margin-top: 1rem;
   }
 
-  .articles-list {
-    list-style: none;
-    border-top: 1px solid var(--color-border);
-  }
-
-  .article-row {
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .article-link {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 1.5rem;
-    align-items: start;
-    padding-block: 2rem;
-    color: var(--color-foreground);
-    transition: background var(--dur) var(--ease), padding var(--dur) var(--ease);
-  }
-  .article-link:hover {
-    background: var(--color-muted);
-    padding-inline: 1.25rem;
-  }
-
-  .article-num {
-    font-size: 0.875rem;
-    color: var(--color-muted-foreground);
-    padding-top: 0.5rem;
-    min-width: 2.5rem;
-  }
-
-  .article-title {
-    font-size: clamp(1.5rem, 2.4vw, 2rem);
-    line-height: 1.15;
-    transition: color var(--dur) var(--ease);
-  }
-  .article-link:hover .article-title { color: var(--color-accent); }
-
-  .article-desc {
-    margin-top: 0.75rem;
-    color: var(--color-secondary);
-    max-width: 68ch;
-    font-size: 1.0625rem;
-  }
-
-  .article-meta {
-    margin-top: 1rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
-    color: var(--color-muted-foreground);
-  }
-
-  .tag {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    padding: 0.25rem 0.625rem;
-    border: 1px solid var(--color-border);
-    text-transform: lowercase;
-  }
-
-  .article-arrow {
-    font-family: var(--font-heading);
-    font-size: 1.5rem;
-    color: var(--color-muted-foreground);
-    align-self: center;
-    transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
-  }
-  .article-link:hover .article-arrow {
-    color: var(--color-accent);
-    transform: translateX(4px);
-  }
-
   .articles-footer {
     margin-top: 3rem;
-  }
-
-  @media (max-width: 640px) {
-    .article-link {
-      grid-template-columns: auto 1fr;
-      gap: 1rem;
-    }
-    .article-arrow { display: none; }
   }
 </style>
 
