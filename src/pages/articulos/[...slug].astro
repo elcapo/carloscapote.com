@@ -20,7 +20,7 @@ const fmt = (d: Date) =>
 <Layout title={`${entry.data.title} — Carlos Capote`} description={entry.data.description}>
   <article class="article">
     <header class="article-header">
-      <div class="container narrow">
+      <div class="container">
         <p class="eyebrow">
           <a href="/articulos">← Volver al archivo</a>
         </p>
@@ -69,18 +69,18 @@ const fmt = (d: Date) =>
   }
   .article-title {
     margin-top: 1.5rem;
-    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-size: clamp(2.5rem, 10vw, 9rem);
     font-weight: 300;
-    letter-spacing: -0.04em;
-    line-height: 0.98;
-    max-width: 16ch;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    text-wrap: balance;
   }
   .article-lede {
     margin-top: 2rem;
-    font-size: clamp(1.125rem, 1.6vw, 1.375rem);
-    line-height: 1.55;
+    font-size: clamp(1.125rem, 2vw, 1.75rem);
+    line-height: 1.45;
     color: var(--color-secondary);
-    max-width: 60ch;
+    max-width: 50ch;
   }
   .article-meta {
     margin-top: 2rem;
