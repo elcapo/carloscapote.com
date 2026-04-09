@@ -1,16 +1,18 @@
 ---
-title: "Chiquito: modelos enormes en GPUs modestas"
-description: "Inferencia capa a capa, precarga en RAM y ventanas deslizantes para correr modelos de 32B parámetros en hardware de andar por casa, con la idea de estudiarlos por dentro."
-pubDate: 2026-02-14
-tags: ["LLM", "Python", "GPU", "educativo"]
+title: "Cómo usar modelos enormes en GPUs modestas"
+description: "Exploro la técnica de la inferencia capa por capa, con precarga en RAM con ventanas deslizantes para correr modelos de 32B parámetros en hardware de andar por casa."
+pubDate: 2026-04-09
+tags: ["LLM", "Python", "GPU", "AirLLM"]
 project: "Chiquito"
 projectUrl: "https://github.com/elcapo/chiquito"
 draft: true
 ---
 
-## La VRAM es el cuello de botella
+import Note from '../../components/Note.astro';
 
-Si quieres estudiar cómo funciona un modelo de lenguaje grande por dentro, lo primero que descubres es que ni siquiera puedes cargarlo. Un modelo de 32B parámetros en precisión completa ocupa decenas de gigas de VRAM, y las GPUs de consumo se quedan muy lejos.
+## El cuello de botella
+
+Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece cuando descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de "32B"<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, se refiere a <strong>32&nbsp;mil millones</strong> de parámetros (no a 32&nbsp;billones en el sentido español del término).</Note> parámetros en precisión completa ocupa decenas de gigas de VRAM, y las GPUs de consumo se quedan muy lejos.
 
 Chiquito es mi intento de resolver ese problema sin renunciar a usar el modelo "de verdad". La idea es simple pero efectiva: **no cargues el modelo entero en la GPU; cárgalo capa a capa**.
 

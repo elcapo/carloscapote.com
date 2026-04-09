@@ -1,0 +1,252 @@
+---
+/**
+ * Nota inline al estilo Oliver Wyman: un número clicable que despliega un
+ * pequeño popup con una aclaración o la ficha de una cita.
+ *
+ * Uso (en archivos .mdx):
+ *
+ *   import Note from '../../components/Note.astro';
+ *
+ *   ...un modelo de "32B"<Note>
+ *     **32B** sigue la convención anglosajona...
+ *   </Note> parámetros...
+ *
+ * El número se asigna automáticamente vía contadores CSS, así que no hace
+ * falta pasarle ningún índice. El contador se reinicia en cada `.prose`.
+ *
+ * Para citas con enlace puedes incluir Markdown dentro del slot, incluyendo
+ * enlaces, énfasis, etc.
+ */
+
+interface Props {
+  /** Texto accesible del marcador y título visible del popup. Por defecto: "Nota". */
+  label?: string;
+}
+
+const { label = 'Nota' } = Astro.props;
+const popupId = `note-${crypto.randomUUID().slice(0, 8)}`;
+const anchorName = `--${popupId}`;
+---
+
+<span class="note">
+  <button
+    class="note-marker"
+    type="button"
+    aria-expanded="false"
+    aria-controls={popupId}
+    aria-describedby={popupId}
+    aria-label={label}
+    style={`anchor-name: ${anchorName};`}
+  ></button>
+  <span
+    class="note-popup"
+    id={popupId}
+    role="group"
+    aria-label={label}
+    style={`position-anchor: ${anchorName};`}
+  >
+    <span class="note-popup-title">{label}</span>
+    <span class="note-popup-body"><slot /></span>
+  </span>
+</span>
+
+<style>
+  .note {
+    position: relative;
+    display: inline;
+    white-space: nowrap;
+  }
+
+  .note-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    margin-left: 0.15rem;
+    vertical-align: super;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: 1;
+    color: var(--color-background);
+    background: var(--color-accent, var(--color-foreground));
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    counter-increment: note-counter;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .note-marker::before {
+    content: counter(note-counter);
+  }
+  .note-marker:hover {
+    transform: translateY(-1px);
+  }
+  .note-marker:focus-visible {
+    outline: 2px solid var(--color-accent, var(--color-foreground));
+    outline-offset: 2px;
+  }
+  .note-marker[aria-expanded='true'] {
+    opacity: 0.85;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .note-marker {
+      transition: none;
+    }
+    .note-marker:hover {
+      transform: none;
+    }
+  }
+
+  .note-popup {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: none;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 2rem));
+    padding: 0.875rem 1rem;
+    font-family: var(--font-body, inherit);
+    font-size: 0.9375rem;
+    font-style: normal;
+    line-height: 1.5;
+    color: var(--color-foreground);
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    white-space: normal;
+    text-align: left;
+  }
+  .note-popup::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background: var(--color-background);
+    border-top: 1px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
+  }
+  .note-popup-title {
+    display: block;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .note-popup-body {
+    display: block;
+  }
+  .note-popup :global(p) {
+    margin: 0 0 0.5rem;
+    max-width: none;
+  }
+  .note-popup :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .note-popup :global(a) {
+    color: var(--color-foreground);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .note[data-open] .note-popup {
+    display: block;
+  }
+
+  /*
+   * Mejora progresiva con CSS Anchor Positioning. En navegadores que la
+   * soportan (Chrome/Edge 125+), el popup se ancla al marcador con
+   * `position: fixed`, lo que permite que se reposicione automáticamente al
+   * hacer scroll y, sobre todo, que `position-try-fallbacks` lo voltee
+   * arriba si no cabe abajo del viewport.
+   */
+  @supports (anchor-name: --x) {
+    .note-popup {
+      position: fixed;
+      inset: auto;
+      top: anchor(bottom);
+      left: anchor(center);
+      transform: none;
+      translate: -50% 0.5rem;
+      position-try-fallbacks: --note-flip-up;
+    }
+    .note-popup::before {
+      /* Cuando el popup está debajo del marcador, la flecha mira arriba. */
+      top: -6px;
+      bottom: auto;
+      border-top: 1px solid var(--color-border);
+      border-left: 1px solid var(--color-border);
+      border-right: none;
+      border-bottom: none;
+    }
+  }
+
+  @position-try --note-flip-up {
+    top: auto;
+    bottom: anchor(top);
+    left: anchor(center);
+    translate: -50% -0.5rem;
+  }
+</style>
+
+<script>
+  function closeAllNotes() {
+    document.querySelectorAll('.note[data-open]').forEach((n) => {
+      n.removeAttribute('data-open');
+      const m = n.querySelector('.note-marker');
+      if (m) m.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const marker = target.closest('.note-marker');
+    if (marker) {
+      e.preventDefault();
+      const note = marker.closest('.note');
+      if (!note) return;
+      const wasOpen = note.hasAttribute('data-open');
+      closeAllNotes();
+      if (!wasOpen) {
+        note.setAttribute('data-open', '');
+        marker.setAttribute('aria-expanded', 'true');
+      }
+      return;
+    }
+    if (!target.closest('.note-popup')) {
+      closeAllNotes();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const open = document.querySelector('.note[data-open]');
+      closeAllNotes();
+      // Devuelve el foco al marcador para no perder al usuario.
+      if (open) {
+        const marker = open.querySelector<HTMLButtonElement>('.note-marker');
+        marker?.focus();
+      }
+    }
+  });
+
+  // Si el foco abandona tanto el marcador como el popup, cerrar.
+  document.addEventListener('focusout', (e) => {
+    const note = (e.target as HTMLElement).closest('.note[data-open]');
+    if (!note) return;
+    // `relatedTarget` es el elemento que recibe el foco. Si está dentro
+    // de la misma nota, no cerramos.
+    const next = e.relatedTarget as HTMLElement | null;
+    if (next && note.contains(next)) return;
+    note.removeAttribute('data-open');
+    const marker = note.querySelector('.note-marker');
+    if (marker) marker.setAttribute('aria-expanded', 'false');
+  });
+</script>
