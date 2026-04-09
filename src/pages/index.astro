@@ -14,10 +14,11 @@ const fmt = (d: Date) =>
 
   <!-- HERO -->
   <section class="hero">
+    <canvas class="hero-bg" aria-hidden="true"></canvas>
     <div class="container">
       <p class="eyebrow">Carlos Capote · Blog</p>
       <h1 class="hero-title display">
-        Programo<br />y comparto
+        Programo<br />y comparto.
       </h1>
       <p class="hero-lede">
         Soy programador y creo firmemente que si apostamos más por compartir que por competir crearemos un futuro mejor.
@@ -106,7 +107,24 @@ const fmt = (d: Date) =>
 
 <style>
   .hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     padding-block: clamp(5rem, 12vw, 10rem) clamp(4rem, 10vw, 8rem);
+  }
+
+  .hero > .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
   }
 
   .hero-title {
@@ -248,3 +266,302 @@ const fmt = (d: Date) =>
     .article-arrow { display: none; }
   }
 </style>
+
+<script>
+  // Hero ASCII background — random letters from "Carlos Capote" fall as 0/1
+  // glyph silhouettes (each cell is randomly '0' or '1') and stack tetris-style
+  // until the pile reaches the top of the hero.
+  type Cell = { dx: number; dy: number; char: '0' | '1' };
+  type LetterShape = {
+    letter: string;
+    cells: Array<{ dx: number; dy: number }>;
+    cols: number;
+    rows: number;
+  };
+  type Piece = {
+    cells: Cell[];
+    cols: number;
+    rows: number;
+    baseCol: number;   // landing column (top-left of piece bbox)
+    finalRow: number;  // landing row (top-left of piece bbox)
+    startY: number;    // px above canvas
+    finalY: number;    // px (= finalRow * cell)
+    spawnAt: number;   // ms (performance.now)
+    duration: number;  // ms
+    color: string;     // baked rgba at spawn time
+  };
+
+  const TEXT = 'Carlos Capote';
+  const LETTER_POOL = TEXT.replace(/\s/g, '').split('');
+  const FONT_STACK = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
+  const FALL_DURATION = 7000;     // ms per letter (≥ 7s)
+  const SPAWN_INTERVAL = 380;     // ms between spawns
+  const SPAWN_ATTEMPTS = 16;      // how hard to try placing each new piece
+
+  // 6 muted hues — picked so each one's contrast against the page background
+  // matches roughly the previous gray tone once the per-mode alpha is applied.
+  const PALETTE_RGB: ReadonlyArray<readonly [number, number, number]> = [
+    [220, 38, 38],   // red
+    [217, 119, 6],   // amber
+    [22, 163, 74],   // green
+    [13, 148, 136],  // teal
+    [37, 99, 235],   // blue
+    [147, 51, 234],  // purple
+  ];
+
+  function init() {
+    const hero = document.querySelector<HTMLElement>('.hero');
+    const canvas = document.querySelector<HTMLCanvasElement>('.hero-bg');
+    if (!hero || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let rafId: number | null = null;
+    let shapes: LetterShape[] = [];
+    let pieces: Piece[] = [];
+    let occupied = new Set<string>();
+    let stackFull = false;
+    let lastSpawn = 0;
+    let cell = 10;
+    let gridCols = 0;
+    let gridRows = 0;
+    let cssW = 0;
+    let cssH = 0;
+    let palette: string[] = [];
+    let resizeTimer: number | null = null;
+
+    const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function buildPalette(): string[] {
+      // Match the visual weight of the previous gray tone in each mode.
+      // Saturated hues read stronger than gray at the same alpha, so we tune
+      // them down a touch so the overall contrast stays in the same range.
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const alpha = isDark ? 0.32 : 0.22;
+      return PALETTE_RGB.map(([r, g, b]) => `rgba(${r},${g},${b},${alpha})`);
+    }
+
+    function buildShapes() {
+      // Cell + font size: each letter is ~8 cells tall.
+      cell = Math.max(7, Math.min(13, Math.floor(cssW / 110)));
+      const fontPx = cell * 8;
+
+      const off = document.createElement('canvas');
+      const octx = off.getContext('2d')!;
+      octx.font = `700 ${fontPx}px ${FONT_STACK}`;
+      const advance = octx.measureText('M').width;
+      const letterPxW = Math.ceil(advance);
+      const letterPxH = Math.ceil(fontPx * 1.1);
+
+      gridCols = Math.floor(cssW / cell);
+      gridRows = Math.floor(cssH / cell);
+
+      const unique = Array.from(new Set(LETTER_POOL));
+      shapes = [];
+
+      for (const letter of unique) {
+        off.width = letterPxW;
+        off.height = letterPxH;
+        const o2 = off.getContext('2d')!;
+        o2.font = `700 ${fontPx}px ${FONT_STACK}`;
+        o2.fillStyle = '#fff';
+        o2.fillRect(0, 0, letterPxW, letterPxH);
+        o2.fillStyle = '#000';
+        o2.textBaseline = 'alphabetic';
+        o2.fillText(letter, 0, fontPx * 0.82);
+
+        const img = o2.getImageData(0, 0, letterPxW, letterPxH).data;
+        const lcols = Math.floor(letterPxW / cell);
+        const lrows = Math.floor(letterPxH / cell);
+        const raw: Array<{ dx: number; dy: number }> = [];
+        let minDx = lcols, maxDx = -1, minDy = lrows, maxDy = -1;
+
+        for (let r = 0; r < lrows; r++) {
+          for (let c = 0; c < lcols; c++) {
+            const px = c * cell + Math.floor(cell / 2);
+            const py = r * cell + Math.floor(cell / 2);
+            const idx = (py * letterPxW + px) * 4;
+            const lum = (img[idx] + img[idx + 1] + img[idx + 2]) / 3;
+            if (lum < 128) {
+              raw.push({ dx: c, dy: r });
+              if (c < minDx) minDx = c;
+              if (c > maxDx) maxDx = c;
+              if (r < minDy) minDy = r;
+              if (r > maxDy) maxDy = r;
+            }
+          }
+        }
+
+        if (raw.length === 0) continue;
+        // Trim to bounding box so the piece occupies its actual silhouette.
+        const trimmed = raw.map((c) => ({ dx: c.dx - minDx, dy: c.dy - minDy }));
+        shapes.push({
+          letter,
+          cells: trimmed,
+          cols: maxDx - minDx + 1,
+          rows: maxDy - minDy + 1,
+        });
+      }
+    }
+
+    function canPlace(shape: LetterShape, baseCol: number, baseRow: number): boolean {
+      for (const c of shape.cells) {
+        const cc = baseCol + c.dx;
+        const rr = baseRow + c.dy;
+        if (cc < 0 || cc >= gridCols) return false;
+        if (rr < 0 || rr >= gridRows) return false;
+        if (occupied.has(`${cc},${rr}`)) return false;
+      }
+      return true;
+    }
+
+    function findLandingRow(shape: LetterShape, baseCol: number): number {
+      // Drop the piece from row 0 down until it can no longer move.
+      if (!canPlace(shape, baseCol, 0)) return -1;
+      let row = 0;
+      while (row + 1 + (shape.rows - 1) < gridRows && canPlace(shape, baseCol, row + 1)) {
+        row++;
+      }
+      return row;
+    }
+
+    function trySpawn(now: number): boolean {
+      for (let attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const maxBase = gridCols - shape.cols;
+        if (maxBase < 0) continue;
+        const baseCol = Math.floor(Math.random() * (maxBase + 1));
+        const finalRow = findLandingRow(shape, baseCol);
+        if (finalRow < 0) continue;
+
+        // Bake the random 0/1 char for each glyph cell at spawn time.
+        const cells: Cell[] = shape.cells.map((c) => ({
+          dx: c.dx,
+          dy: c.dy,
+          char: Math.random() < 0.5 ? '0' : '1',
+        }));
+
+        // Mark grid cells as occupied immediately so subsequent spawns stack on top.
+        for (const c of cells) {
+          occupied.add(`${baseCol + c.dx},${finalRow + c.dy}`);
+        }
+
+        pieces.push({
+          cells,
+          cols: shape.cols,
+          rows: shape.rows,
+          baseCol,
+          finalRow,
+          startY: -(shape.rows + 2) * cell,
+          finalY: finalRow * cell,
+          spawnAt: now,
+          duration: FALL_DURATION,
+          color: palette[Math.floor(Math.random() * palette.length)],
+        });
+        return true;
+      }
+      return false;
+    }
+
+    function step(now: number) {
+      if (!stackFull && now - lastSpawn >= SPAWN_INTERVAL) {
+        const spawned = trySpawn(now);
+        if (spawned) {
+          lastSpawn = now;
+        } else {
+          stackFull = true;
+        }
+      }
+
+      ctx!.clearRect(0, 0, cssW, cssH);
+      ctx!.font = `${Math.floor(cell * 0.95)}px ${FONT_STACK}`;
+      ctx!.textAlign = 'center';
+      ctx!.textBaseline = 'middle';
+
+      let hasMoving = false;
+      for (const p of pieces) {
+        const elapsed = now - p.spawnAt;
+        let t = elapsed / p.duration;
+        let y: number;
+        if (t < 1) {
+          hasMoving = true;
+          if (t < 0) t = 0;
+          // Ease-in (gravity).
+          const ty = t * t;
+          y = p.startY + (p.finalY - p.startY) * ty;
+        } else {
+          y = p.finalY;
+        }
+        const x = p.baseCol * cell;
+        ctx!.fillStyle = p.color;
+        for (const c of p.cells) {
+          const cx = x + c.dx * cell + cell / 2;
+          const cy = y + c.dy * cell + cell / 2;
+          ctx!.fillText(c.char, cx, cy);
+        }
+      }
+
+      if (!stackFull || hasMoving) {
+        rafId = requestAnimationFrame(step);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function setup(animate: boolean) {
+      const rect = hero!.getBoundingClientRect();
+      cssW = rect.width;
+      cssH = rect.height;
+      if (cssW === 0 || cssH === 0) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas!.width = Math.floor(cssW * dpr);
+      canvas!.height = Math.floor(cssH * dpr);
+      canvas!.style.width = `${cssW}px`;
+      canvas!.style.height = `${cssH}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      palette = buildPalette();
+
+      // Reset state.
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      pieces = [];
+      occupied = new Set();
+      stackFull = false;
+      lastSpawn = 0;
+
+      buildShapes();
+
+      if (!animate || shapes.length === 0) {
+        ctx!.clearRect(0, 0, cssW, cssH);
+        return;
+      }
+
+      rafId = requestAnimationFrame(step);
+    }
+
+    function start() {
+      setup(!reduced());
+    }
+
+    document.fonts.ready.then(start).catch(start);
+
+    const ro = new ResizeObserver(() => {
+      if (resizeTimer !== null) clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        // On resize, restart the animation with the new dimensions.
+        setup(!reduced());
+      }, 200);
+    });
+    ro.observe(hero);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
