@@ -10,9 +10,7 @@ draft: true
 
 import Note from '../../components/Note.astro';
 
-## El cuello de botella
-
-Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece cuando descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de "32B"<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, se refiere a <strong>32&nbsp;mil millones</strong> de parámetros (no a 32&nbsp;billones en el sentido español del término).</Note> parámetros en precisión completa ocupa decenas de gigas de VRAM, y las GPUs de consumo se quedan muy lejos.
+Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece cuando descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, se refiere a <strong>32&nbsp;mil millones</strong> de parámetros (no a 32&nbsp;billones en el sentido español del término).</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
 Chiquito es mi intento de resolver ese problema sin renunciar a usar el modelo "de verdad". La idea es simple pero efectiva: **no cargues el modelo entero en la GPU; cárgalo capa a capa**.
 
