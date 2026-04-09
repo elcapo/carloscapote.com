@@ -9,10 +9,25 @@ draft: true
 ---
 
 import Note from '../../components/Note.astro';
+import Chart from '../../components/Chart.astro'; 
 
-Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece cuando descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, se refiere a <strong>32&nbsp;mil millones</strong> de parámetros (no a 32&nbsp;billones en el sentido español del término).</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
+Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
-Chiquito es mi intento de resolver ese problema sin renunciar a usar el modelo "de verdad". La idea es simple pero efectiva: **no cargues el modelo entero en la GPU; cárgalo capa a capa**.
+<Chart
+    title="Memoria (fp16) frente a parámetros del modelo"
+    xLabel="Miles de millónes de parámetros"
+    yLabel="Memoria (GB)"
+    xScale="linear"
+    yScale="linear"
+    data={[
+        { x: 1,  y: 2 },
+        { x: 7,  y: 14 },
+        { x: 32, y: 65 },
+        { x: 70, y: 140 },
+    ]}
+/>
+
+En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por [AirLLM](https://github.com/lyogavin/airllm), de [Gavin Li](https://github.com/lyogavin), y que propone una técnica para poder cargar modelos bastante más grandes que la memoria VRAM disponible: cargarlos poco a poco.
 
 ## Cómo funciona
 

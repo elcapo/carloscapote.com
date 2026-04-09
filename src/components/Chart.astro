@@ -1,0 +1,292 @@
+---
+/**
+ * Gráfica interactiva para artículos, basada en Chart.js.
+ *
+ * Uso (en archivos .mdx):
+ *
+ *   import Chart from '../../components/Chart.astro';
+ *
+ *   <Chart
+ *     title="Memoria (fp16) frente a parámetros del modelo"
+ *     xLabel="Parámetros"
+ *     yLabel="Memoria (GB)"
+ *     xScale="log"   // o "logarithmic"
+ *     yScale="log"
+ *     data={[
+ *       { x: 1_000_000_000,  y: 2 },
+ *       { x: 7_000_000_000,  y: 14 },
+ *       { x: 32_000_000_000, y: 65 },
+ *       { x: 70_000_000_000, y: 140 },
+ *     ]}
+ *   />
+ *
+ * `data` admite dos formas: una serie única (array de `{x, y}`) o varias
+ * series nombradas (array de `{label, points}`). Los colores y tipografías
+ * se toman de las variables CSS de `global.css` y se actualizan al cambiar
+ * el esquema de color del sistema.
+ */
+
+type Point = { x: number; y: number };
+type SinglePoints = Point[];
+type MultiSeries = Array<{ label: string; points: Point[] }>;
+
+interface Props {
+  /** Tipo de gráfica. Por ahora solo `'line'` está soportado. */
+  type?: 'line';
+  /** Datos: una serie única o varias series nombradas. */
+  data: SinglePoints | MultiSeries;
+  /** Etiqueta del eje X. */
+  xLabel?: string;
+  /** Etiqueta del eje Y. */
+  yLabel?: string;
+  /** Escala del eje X. `'log'` es alias de `'logarithmic'`. */
+  xScale?: 'linear' | 'log' | 'logarithmic';
+  /** Escala del eje Y. `'log'` es alias de `'logarithmic'`. */
+  yScale?: 'linear' | 'log' | 'logarithmic';
+  /** Título, usado como `aria-label` y `<figcaption>`. */
+  title?: string;
+  /** Alto en píxeles. Por defecto 320. */
+  height?: number;
+}
+
+const {
+  type = 'line',
+  data,
+  xLabel,
+  yLabel,
+  xScale = 'linear',
+  yScale = 'linear',
+  title,
+  height = 320,
+} = Astro.props;
+
+// Normaliza `data` a formato multi-serie para simplificar el script.
+const isMulti = Array.isArray(data) && data.length > 0 && 'points' in (data[0] as object);
+const series: MultiSeries = isMulti
+  ? (data as MultiSeries)
+  : [{ label: yLabel ?? '', points: data as SinglePoints }];
+
+// Chart.js registra la escala como `'logarithmic'`; aceptamos `'log'` como alias.
+const normalizeScale = (s: 'linear' | 'log' | 'logarithmic') =>
+  s === 'log' ? 'logarithmic' : s;
+
+const config = {
+  type,
+  series,
+  xLabel,
+  yLabel,
+  xScale: normalizeScale(xScale),
+  yScale: normalizeScale(yScale),
+};
+
+const chartId = `chart-${crypto.randomUUID().slice(0, 8)}`;
+---
+
+<figure class="chart" style={`--chart-height: ${height}px;`}>
+  <div class="chart-canvas-wrap">
+    <canvas
+      id={chartId}
+      data-chart={JSON.stringify(config)}
+      role="img"
+      aria-label={title ?? 'Gráfica'}></canvas>
+  </div>
+  {title && <figcaption>{title}</figcaption>}
+</figure>
+
+<style>
+  .chart {
+    margin-block: 2rem;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: var(--chart-height, 320px);
+  }
+  .chart canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .chart figcaption {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+    text-align: center;
+  }
+</style>
+
+<script>
+  import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
+
+  type Point = { x: number; y: number };
+  type Series = { label: string; points: Point[] };
+  type Config = {
+    type: 'line';
+    series: Series[];
+    xLabel?: string;
+    yLabel?: string;
+    xScale: 'linear' | 'logarithmic';
+    yScale: 'linear' | 'logarithmic';
+  };
+
+  // Lee una variable CSS del :root y la devuelve trim-eada.
+  function cssVar(name: string): string {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function themeColors() {
+    return {
+      fg: cssVar('--color-foreground'),
+      muted: cssVar('--color-muted-foreground'),
+      border: cssVar('--color-border'),
+      accent: cssVar('--color-accent'),
+      bg: cssVar('--color-background'),
+    };
+  }
+
+  // Paleta cíclica para multi-serie. El primero siempre es el acento.
+  function seriesColors(n: number): string[] {
+    const { accent, fg } = themeColors();
+    const palette = [accent, fg, cssVar('--color-secondary') || fg];
+    return Array.from({ length: n }, (_, i) => palette[i % palette.length]);
+  }
+
+  function buildConfig(cfg: Config): ChartConfiguration {
+    const colors = themeColors();
+    const sColors = seriesColors(cfg.series.length);
+    return {
+      type: cfg.type,
+      data: {
+        datasets: cfg.series.map((s, i) => ({
+          label: s.label,
+          data: s.points,
+          borderColor: sColors[i],
+          backgroundColor: sColors[i],
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0,
+        })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        interaction: { mode: 'nearest', intersect: false },
+        plugins: {
+          legend: {
+            display: cfg.series.length > 1,
+            labels: { color: colors.fg },
+          },
+          tooltip: {
+            backgroundColor: colors.bg,
+            titleColor: colors.fg,
+            bodyColor: colors.fg,
+            borderColor: colors.border,
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => {
+                const p = ctx.parsed as { x: number; y: number };
+                const x = Number.isFinite(p.x) ? p.x.toLocaleString() : p.x;
+                const y = Number.isFinite(p.y) ? p.y.toLocaleString() : p.y;
+                const label = ctx.dataset.label;
+                return label ? `${label}: (${x}, ${y})` : `(${x}, ${y})`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: cfg.xScale,
+            title: cfg.xLabel
+              ? { display: true, text: cfg.xLabel, color: colors.muted }
+              : { display: false },
+            ticks: { color: colors.muted },
+            grid: { color: colors.border },
+            border: { color: colors.border },
+          },
+          y: {
+            type: cfg.yScale,
+            title: cfg.yLabel
+              ? { display: true, text: cfg.yLabel, color: colors.muted }
+              : { display: false },
+            ticks: { color: colors.muted },
+            grid: { color: colors.border },
+            border: { color: colors.border },
+          },
+        },
+      },
+    };
+  }
+
+  // Aplica colores actuales a una instancia ya creada (al cambiar el tema).
+  function retheme(chart: ChartType, cfg: Config) {
+    const fresh = buildConfig(cfg);
+    chart.data = fresh.data;
+    chart.options = fresh.options!;
+    chart.update('none');
+  }
+
+  const instances = new WeakMap<HTMLCanvasElement, { chart: ChartType; cfg: Config }>();
+  let ChartCtor: typeof import('chart.js').Chart | null = null;
+
+  async function ensureChart() {
+    if (!ChartCtor) {
+      const mod = await import('chart.js/auto');
+      ChartCtor = mod.default;
+    }
+    return ChartCtor;
+  }
+
+  async function initCanvas(canvas: HTMLCanvasElement) {
+    if (instances.has(canvas)) return;
+    const raw = canvas.dataset.chart;
+    if (!raw) return;
+    let cfg: Config;
+    try {
+      cfg = JSON.parse(raw) as Config;
+    } catch {
+      return;
+    }
+    const Ctor = await ensureChart();
+    const chart = new Ctor(canvas, buildConfig(cfg));
+    instances.set(canvas, { chart, cfg });
+  }
+
+  function observeAll() {
+    const canvases = document.querySelectorAll<HTMLCanvasElement>('canvas[data-chart]');
+    if (canvases.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            initCanvas(entry.target as HTMLCanvasElement);
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    canvases.forEach((c) => io.observe(c));
+  }
+
+  // Re-tematizado al cambiar el esquema de color.
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', () => {
+    document.querySelectorAll<HTMLCanvasElement>('canvas[data-chart]').forEach((c) => {
+      const entry = instances.get(c);
+      if (entry) retheme(entry.chart, entry.cfg);
+    });
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeAll, { once: true });
+  } else {
+    observeAll();
+  }
+</script>
