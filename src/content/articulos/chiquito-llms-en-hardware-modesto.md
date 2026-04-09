@@ -1,5 +1,5 @@
 ---
-title: "Chiquito: ejecutar modelos enormes en una GPU pequeña"
+title: "Chiquito: modelos enormes en GPUs modestas"
 description: "Inferencia capa a capa, precarga en RAM y ventanas deslizantes para correr modelos de 32B parámetros en hardware de andar por casa, con la idea de estudiarlos por dentro."
 pubDate: 2026-02-14
 tags: ["LLM", "Python", "GPU", "educativo"]
