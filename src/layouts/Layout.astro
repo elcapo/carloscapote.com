@@ -40,6 +40,17 @@ const {
     />
 
     <title>{title}</title>
+
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          if (stored === 'dark' || stored === 'light') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <a href="#main" class="skip-link">Saltar al contenido</a>
