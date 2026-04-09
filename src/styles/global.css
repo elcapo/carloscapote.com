@@ -167,7 +167,7 @@ h3 {
 }
 
 .display--md {
-  font-size: clamp(3rem, 12vw, 9.5rem);
+  font-size: clamp(2rem, 10vw, 6rem);
   letter-spacing: -0.05em;
 }
 
