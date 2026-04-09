@@ -69,7 +69,11 @@ const fmt = (d: Date) =>
   }
   .article-title {
     margin-top: 1.5rem;
-    font-size: clamp(2.25rem, 5.5vw, 4.5rem);
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    line-height: 0.98;
+    max-width: 16ch;
   }
   .article-lede {
     margin-top: 2rem;
@@ -115,13 +119,17 @@ const fmt = (d: Date) =>
   }
 
   .prose :global(h2) {
-    font-size: clamp(1.625rem, 2.6vw, 2.25rem);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
     margin-top: 3.5rem;
     margin-bottom: 1.25rem;
-    line-height: 1.15;
   }
   .prose :global(h3) {
     font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
     margin-top: 2.5rem;
     margin-bottom: 1rem;
   }

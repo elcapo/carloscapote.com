@@ -15,15 +15,15 @@ const fmt = (d: Date) =>
   <!-- HERO -->
   <section class="hero">
     <div class="container">
-      <p class="eyebrow">Carlos Capote · Portfolio</p>
-      <h1 class="hero-title">
-        Programar, escribir<br />y defender lo libre.
+      <p class="eyebrow">Carlos Capote · Blog</p>
+      <h1 class="hero-title display">
+        Programo<br />y comparto
       </h1>
       <p class="hero-lede">
-        Soy programador. Escribo casos de uso sobre los proyectos en los que trabajo y defiendo el software y la cultura libres como una forma sensata de construir y compartir conocimiento.
+        Soy programador y creo firmemente que si apostamos más por compartir que por competir crearemos un futuro mejor.
       </p>
       <div class="hero-actions">
-        <a href="/articulos" class="btn">Leer los artículos →</a>
+        <a href="/articulos" class="btn">Leer artículos →</a>
         <a href="#proyectos" class="btn btn--ghost">Ver proyectos</a>
       </div>
     </div>
@@ -38,8 +38,8 @@ const fmt = (d: Date) =>
         <p class="eyebrow">01 · Sobre el sitio</p>
       </div>
       <div class="manifesto-body">
-        <h2>
-          Cada artículo es un caso de uso: una idea, una decisión técnica, un proyecto que ha pasado por mis manos.
+        <h2 class="display display--md">
+          Cada artículo<br />es un caso<br />de uso.
         </h2>
         <p>
           No escribo aquí tutoriales genéricos. Escribo sobre cosas que he construido, por qué las he construido, qué he aprendido y dónde encajan en una conversación más larga sobre tecnología, conocimiento y bien común.
@@ -55,7 +55,7 @@ const fmt = (d: Date) =>
     <div class="container">
       <header class="articles-header">
         <p class="eyebrow">02 · Últimos artículos</p>
-        <h2>Casos de uso recientes</h2>
+        <h2 class="display display--md">Casos<br />de uso<br />recientes.</h2>
       </header>
 
       <ul class="articles-list">
@@ -92,8 +92,8 @@ const fmt = (d: Date) =>
         <p class="eyebrow">03 · Posicionamiento</p>
       </div>
       <div class="free-body">
-        <h2>
-          Defiendo el software<br />y la cultura libres.
+        <h2 class="display display--md">
+          Software libre,<br />cultura libre.
         </h2>
         <p>
           Creo que el conocimiento técnico debería poder leerse, copiarse, modificarse y compartirse. Casi todo lo que publico aquí está bajo licencias libres, y muchos de los proyectos sobre los que escribo nacen precisamente para abrir cosas que estaban cerradas, ya sean datos públicos, modelos opacos o herramientas atadas a un proveedor.
@@ -110,8 +110,8 @@ const fmt = (d: Date) =>
   }
 
   .hero-title {
-    margin-top: 1.5rem;
-    max-width: 14ch;
+    margin-top: 2rem;
+    max-width: 18ch;
   }
 
   .hero-lede {
@@ -143,7 +143,7 @@ const fmt = (d: Date) =>
 
   .manifesto-body h2,
   .free-body h2 {
-    max-width: 22ch;
+    max-width: 16ch;
   }
   .manifesto-body p,
   .free-body p {
