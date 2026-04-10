@@ -28,23 +28,67 @@ Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la
     ]}
 />
 
-En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por [AirLLM](https://github.com/lyogavin/airllm) de [Gavin Li](https://github.com/lyogavin), que propone una técnica para poder cargar modelos bastante más grandes que la memoria VRAM disponible: cargarlos poco a poco.
+En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por AirLLM<Note label="AirLLM">[AirLLM](https://github.com/lyogavin/airllm) es un proyecto de [Gavin Li](https://github.com/lyogavin) que optimiza el uso de la memoria de inferencia, lo que permite que modelos de lenguaje de 70B se ejecuten en una sola tarjeta GPU de 4 GB sin cuantización, destilación ni poda.</Note>, que propone una técnica para poder cargar modelos bastante más grandes que la memoria VRAM disponible: cargarlos poco a poco.
 
 ## El sacrificio
 
-Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que el enfoque implica una pérdida clara: el rendimiento. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
+Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que **este enfoque implica una pérdida clara: el rendimiento**. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
 
 > En mis pruebas use un equipo con 8GB de VRAM y generar 20 tokens llevó más de 30 minutos. Obviamente se puede usar esta técnica en producción. Cuando tiene sentido es cuando lo que quieres es examinar en local cómo funciona un modelo que no cabe en la memoria de tu tarjeta gráfica.
 
 ### Estimador de tiempo de inferencia
 
-Resulta muy útil hacer unas estimaciones previas, para tener una idea de cuánto tiempo lleva una inferencia con la técnica de carga de parámetros capa por capa.
+Resulta muy útil hacer unas estimaciones previas para tener una idea de cuánto tiempo lleva una inferencia con la técnica de carga de parámetros capa por capa.
 
 <LayeredInferenceTimeEstimator />
 
 ## Cómo funciona
 
 Una vez has entendido que esta técnica no pretende ser rápida sino resolver el problema de poder ejecutar, aunque sea despacio, modelos grandes en equipos con GPUs modestas, podemos empezar a hablar sobre cómo lo consigue.
+
+### Los dispositivos `meta` de Pytorch
+
+Para poder cargar un modelo capa a capa, necesitas saber qué "forma" tiene ese modelo:
+
+- cuántas capas tiene,
+- qué tipo de módulos contiene cada una,
+- qué dimensiones tienen sus tensores.
+
+Pero si intentas cargar el modelo de la forma habitual PyTorch reservará memoria para todos los pesos de golpe, que es exactamente lo que intentamos evitar. Aquí es donde entran los dispositivos meta de PyTorch.<Note label="Dispositivos meta de Pytorch">El dispositivo “[meta](https://docs.pytorch.org/docs/stable/meta.html)” es un dispositivo abstracto que denota un tensor que registra únicamente metadatos, pero ningún dato real.</Note>
+
+**Un tensor en el dispositivo meta tiene forma y tipo de dato pero no ocupa ni un solo byte de memoria**. Es algo así como un tensor fantasma: sabe lo que mide pero no contiene nada.
+
+```python
+import torch
+
+t = torch.empty(10000, 10000, device="meta")
+print(t.shape) # torch.Size([10000, 10000])
+print(t.device) # meta
+
+# Este tensor ocuparía ~400 MB en float32.
+# En el dispositivo meta, ocupa 0 bytes.
+```
+
+Esto permite construir la arquitectura completa de un modelo —con todas sus capas, submódulos y dimensiones correctas— sin gastar memoria. La biblioteca `accelerate` de Hugging Face<Note label="Librería accelerate de HuggingFace">La librería [Accelerate](https://huggingface.co/docs/accelerate/index) de Hugging Face es una herramienta diseñada para simplificar el entrenamiento y la ejecución de modelos de aprendizaje automático en distintos entornos de hardware (CPU, GPU, múltiples GPUs o TPUs) sin necesidad de cambiar significativamente el código.</Note> ofrece un gestor de contexto que hace exactamente esto:
+
+```python
+from accelerate import init_empty_weights
+from transformers import AutoModelForCausalLM, AutoConfig
+
+config = AutoConfig.from_pretrained("Qwen/Qwen2.5-32B")
+with init_empty_weights():
+    model = AutoModelForCausalLM.from_config(config)
+
+# model es un objeto completo: puedes recorrer sus capas,
+# inspeccionar sus nombres, consultar las dimensiones de
+# cada parámetro... pero no hay pesos reales en memoria.
+```
+
+**Chiquito** se apoya en este mecanismo en tres momentos:
+
+- Al iniciar crea toda la estructura del modelo en meta para saber qué capas existen y cuánto pesa cada una.<Note label="Inicialización">Al [crear el modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L196-L208), se usa el gestor de contexto de la librería Accelerate que permite cargar el modelo en el dispositivo `meta`.</Note>
+- Durante la inferencia carga los pesos reales de cada capa desde RAM a GPU justo antes de ejecutarla.<Note label="Inferencia">Justo antes de usar cada capa para [inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328), se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
+- Y por último, una vez procesada la capa, la devuelve al dispositivo meta, liberando la VRAM.<Note label="Liberación">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria, se [mueve el tensor al dispositivo meta](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
 
 ## Optimizaciones
 
