@@ -128,36 +128,16 @@ Los modelos no trabajan con texto sino con secuencias de números enteros. **El 
 
 En HuggingFace, **los pesos del modelo se almacenan en archivos safetensors**, un formato binario simple, rápido y que permite mapeo en memoria.<Note label="Safetensors">El formato [safetensors](https://huggingface.co/docs/safetensors/index) fue creado por Hugging Face como alternativa más segura y eficiente al formato pickle que usa PyTorch por defecto. Cada archivo es un mapeo plano de nombre de parámetro a tensor.</Note>
 
-En su forma más básica, se usan así:
+### El mapa de pesos
 
-```python
-from safetensors.torch import load_file, save_file
+Un modelo pequeño puede caber en un único archivo pero los modelos grandes se fragmentan en varios archivos. Cuando un modelo está fragmentado, existe un archivo índice<Note label="Índice de Safetokens">Los modelos de HuggingFace fragmentados tienen un archivo llamado [model.safetensors.index.json](https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite-Chat/blob/main/model.safetensors.index.json) que define una propiedad `weight_map` relacionando cada peso con el fichero Safetensors en el que está definido.</Note> que mapea cada parámetro al fragmento que lo contiene:
 
-# Cargar
-state_dict = load_file("model.safetensors", device="cpu")
-
-# Guardar
-save_file(state_dict, "output.safetensors")
-```
-
-### Modelos fragmentados y el mapa de pesos
-
-Un modelo pequeño puede caber en un único archivo pero los modelos grandes se fragmentan en varios archivos. Cuando un modelo está fragmentado, existe un archivo índice llamado `model.safetensors.index.json` que mapea cada parámetro al fragmento que lo contiene:
-
-```json
-{
-  "weight_map": {
-    "model.embed_tokens.weight":
-        "model-00001-of-00004.safetensors",
-    "model.layers.0.self_attn.q_proj.weight":
-        "model-00001-of-00004.safetensors",
-    "model.layers.31.mlp.up_proj.weight":
-        "model-00004-of-00004.safetensors",
-    "lm_head.weight":
-        "model-00004-of-00004.safetensors"
-  }
-}
-```
+| Peso | Fichero |
+| :---  | :--- |
+| model.embed_tokens.weight | model-00001-of-00004.safetensors |
+| model.layers.0.self_attn.q_proj.weight | model-00001-of-00004.safetensors |
+| model.layers.31.mlp.up_proj.weight | model-00004-of-00004.safetensors |
+| lm_head.weight | model-00004-of-00004.safetensors |
 
 Este mapa de pesos es lo que hace posible la carga selectiva: podemos saber en qué fragmento están los parámetros de una capa concreta sin tener que cargarlo todo. Chiquito parsea este mapa para decidir qué archivos necesita abrir en cada momento.<Note label="Parseo del mapa de pesos">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas. Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
 
@@ -170,11 +150,11 @@ import huggingface_hub
 
 cache_path = huggingface_hub.snapshot_download(
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    token=None,                   # necesario si el modelo es privado
-    ignore_patterns=["*.bin"],    # ignorar pesos en formato antiguo
+    token=None, # necesario si el modelo es privado
+    ignore_patterns=["*.bin"], # ignorar pesos en formato antiguo
 )
 ```
 
-Las llamadas posteriores con el mismo identificador devuelven la ruta cacheada sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">La función [`resolve_model_path()`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) intenta usar la ruta como directorio local antes de recurrir a `snapshot_download()`.</Note>
+Las llamadas posteriores con el mismo identificador devuelven la ruta cacheada sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de recurrir a `snapshot_download()`.</Note>
 
 Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.

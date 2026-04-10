@@ -49,7 +49,7 @@
   --color-accent-hover: #1D4ED8;
   --color-background: #FAFAFA;
   --color-foreground: #09090B;
-  --color-muted: #E8ECF0;
+  --color-muted: #F1F3F5;
   --color-muted-foreground: #52525B;
   --color-border: #E4E4E7;
   --color-destructive: #DC2626;
@@ -112,14 +112,14 @@
   :root:not([data-theme="light"]) .astro-code,
   :root:not([data-theme="light"]) .astro-code span {
     color: var(--shiki-dark) !important;
-    background-color: var(--shiki-dark-bg) !important;
+    background-color: var(--color-muted) !important;
   }
 }
 
 :root[data-theme="dark"] .astro-code,
 :root[data-theme="dark"] .astro-code span {
   color: var(--shiki-dark) !important;
-  background-color: var(--shiki-dark-bg) !important;
+  background-color: var(--color-muted) !important;
 }
 
 * {
