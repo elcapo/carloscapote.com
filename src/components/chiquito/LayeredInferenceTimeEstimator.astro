@@ -2,8 +2,8 @@
 interface Props {
   /** Parámetros del modelo en billones (default: 32) */
   defaultParams?: number;
-  /** Número de transformers: (default: 6) */
-  defaultTransformers?: number;
+  /** Número de capas (default: 64) */
+  defaultLayers?: number;
   /** Bytes por parámetro: 4=fp32, 2=bf16, 1=int8, 0.5=int4 (default: 2) */
   defaultBpp?: number;
   /** Tokens a generar (default: 20) */
@@ -14,7 +14,7 @@ interface Props {
 
 const {
   defaultParams = 32,
-  defaultTransformers = 6,
+  defaultLayers = 64,
   defaultBpp = 2,
   defaultTokens = 20,
   defaultPcieBW = 1,
@@ -46,11 +46,11 @@ const {
   </div>
 
   <div class="slider-row">
-    <label for="ic-transformers">
-      Número de transformers
+    <label for="ic-layers">
+      Número de capas
     </label>
-    <input type="range" id="ic-transformers" min="1" max="8" step="1" value={defaultTransformers} />
-    <span class="slider-val"><span id="ic-transformers-out">{defaultTransformers}</span></span>
+    <input type="range" id="ic-layers" min="8" max="120" step="1" value={defaultLayers} />
+    <span class="slider-val"><span id="ic-layers-out">{defaultLayers}</span></span>
   </div>
 
   <div class="slider-row">
@@ -313,42 +313,6 @@ const {
     color: var(--color-foreground);
   }
 
-  /* Barras */
-  .bar-area {
-    margin: 1.5rem 0;
-  }
-  .bar-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    font-size: 0.75rem;
-    color: var(--color-muted-foreground);
-  }
-  .bar-label {
-    min-width: 110px;
-  }
-  .bar-track {
-    flex: 1;
-    background: var(--color-muted);
-    border-radius: 4px;
-    height: 18px;
-    overflow: hidden;
-  }
-  .bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s var(--ease);
-  }
-  .bar-fill--blue  { background: var(--color-accent); }
-  .bar-fill--coral { background: var(--color-destructive); }
-  .bar-val {
-    min-width: 65px;
-    text-align: right;
-    font-weight: 500;
-    color: var(--color-foreground);
-  }
-
   /* Separador */
   .divider {
     border: none;
@@ -356,17 +320,6 @@ const {
     margin: 1.5rem 0;
   }
 
-  /* Nota al pie */
-  .note {
-    font-size: 0.75rem;
-    color: var(--color-muted-foreground);
-    line-height: 1.7;
-    margin-top: 1rem;
-    border-left: 3px solid var(--color-border);
-    padding-left: 0.75rem;
-  }
-
-  /* Responsive */
   @media (max-width: 520px) {
     .slider-row { flex-wrap: wrap; }
     .slider-row label { min-width: 100%; }
@@ -380,7 +333,6 @@ const {
     const $ = (id) => document.getElementById(id);
     const nf = (n, d = 0) => n.toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: "always" });
 
-    // El ancho de banda se toma del atributo del botón activo (en Gbps / 8 = GB/s)
     let pcieBW = defaultPcieBW;
 
     function fmt(secs) {
@@ -393,13 +345,12 @@ const {
 
     function calc() {
       const params = parseFloat($("ic-params").value);
-      const exp = parseInt($("ic-transformers").value);
+      const layers = parseInt($("ic-layers").value);
       const bpp = parseFloat(document.querySelector("#ic-bpp-selector .speed-btn.active").dataset.bpp);
       const tokens = parseInt($("ic-tokens").value);
 
-      const transformerLayers = Math.pow(2, exp);
       const extraLayers = 3; // embed + norm + lm_head
-      const totalLayers = transformerLayers + extraLayers;
+      const totalLayers = layers + extraLayers;
 
       const modelGB = (params * 1e9 * bpp) / 1e9;
       const layerSizeGB = modelGB / totalLayers;
@@ -407,14 +358,11 @@ const {
       const layerTimeMs = (layerSizeGB / pcieBW) * 1000;
       const loads = totalLayers * tokens;
       const totalSecs = (layerTimeMs * loads) / 1000;
-      const tokPerSec = tokens / totalSecs;
 
-      // Actualizar readouts de sliders
       $("ic-params-out").textContent = params;
-      $("ic-transformers-out").textContent = transformerLayers;
+      $("ic-layers-out").textContent = layers;
       $("ic-tokens-out").textContent = tokens;
 
-      // Métricas
       if (layerSizeMB >= 1000) {
         $("ic-m-layersize").textContent = nf(layerSizeGB, 2);
         $("ic-m-layersize-unit").textContent = "GB / capa";
@@ -435,19 +383,16 @@ const {
         layerTimeMs >= 1 ? nf(layerTimeMs, 1) : nf(layerTimeMs, 2);
       $("ic-m-loads").textContent = nf(loads);
 
-      // Banner
       const total = fmt(totalSecs);
       $("ic-result-time").textContent = total;
       const activeBtn = document.querySelector("#ic-speed-selector .speed-btn.active");
       $("ic-result-desc").innerHTML = `para generar <strong>${tokens}</strong> tokens con un modelo de <strong>${params}B</strong> parámetros a <strong>${bpp}</strong> bytes/parámetro<br>transfiriendo <strong>${totalLayers}</strong> capas desde RAM al GPU por <strong>${activeBtn.dataset.label}</strong>.`;
     }
 
-    // Sliders
-    ["ic-params", "ic-transformers", "ic-tokens"].forEach((id) => {
+    ["ic-params", "ic-layers", "ic-tokens"].forEach((id) => {
       $(id).addEventListener("input", calc);
     });
 
-    // Botones cuantización
     document.getElementById("ic-bpp-selector").addEventListener("click", (e) => {
       const btn = e.target.closest(".speed-btn");
       if (!btn) return;
@@ -458,7 +403,6 @@ const {
       calc();
     });
 
-    // Botones PCIe
     document.getElementById("ic-speed-selector").addEventListener("click", (e) => {
       const btn = e.target.closest(".speed-btn");
       if (!btn) return;
@@ -470,7 +414,6 @@ const {
       calc();
     });
 
-    // Cálculo inicial
     calc();
   })();
 </script>
