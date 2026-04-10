@@ -34,17 +34,21 @@ En este artículo te hablo sobre **Chiquito**, un repositorio que he creado insp
 
 Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que el enfoque implica una pérdida clara: el rendimiento. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
 
-En mis pruebas use un equipo con 8GB de VRAM y generar 20 tokens llevó más de 30 minutos. Obviamente no puedes usar esta técnica en producción. Úsala cuando quieras examinar cómo funciona un modelo que, de otra manera, no podrías ejecutar en local.
+> En mis pruebas use un equipo con 8GB de VRAM y generar 20 tokens llevó más de 30 minutos. Obviamente se puede usar esta técnica en producción. Cuando tiene sentido es cuando lo que quieres es examinar en local cómo funciona un modelo que no cabe en la memoria de tu tarjeta gráfica.
 
 ### Estimador de tiempo de inferencia
 
-Aquí te dejo una herramienta que puede ayudarte a hacerte una idea de cuánto tiempo lleva la inferencia con la técnica de carga de parámetros capa por capa.
+Resulta muy útil hacer unas estimaciones previas, para tener una idea de cuánto tiempo lleva una inferencia con la técnica de carga de parámetros capa por capa.
 
 <LayeredInferenceTimeEstimator />
 
 ## Cómo funciona
 
-Chiquito implementa inferencia secuencial por capas: en cada paso del forward pass, mueve a la GPU solo la capa que toca calcular, ejecuta, y libera. Esto convierte el problema de "necesito 65 GB de VRAM" en "necesito el tamaño de la capa más grande". A partir de esa idea base, hay tres optimizaciones que merece la pena contar:
+Una vez has entendido que esta técnica no pretende ser rápida sino resolver el problema de poder ejecutar, aunque sea despacio, modelos grandes en equipos con GPUs modestas, podemos empezar a hablar sobre cómo lo consigue.
+
+## Optimizaciones
+
+La técnica consiste en implementar inferencia secuencial por capas: en cada paso de la inferencia, se mueve a la GPU solo una capa, se ejecuta e inmediatamente se libera. Esto convierte el problema de "necesito 65 GB de VRAM" en "necesito el tamaño de la capa más grande". A partir de esa idea base, hay tres optimizaciones que merece la pena contar:
 
 ### 1. Precarga en RAM (en lugar de leer de disco)
 
