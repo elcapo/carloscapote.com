@@ -11,6 +11,7 @@ draft: true
 import Note from '../../components/Note.astro';
 import Chart from '../../components/Chart.astro';
 import LayeredInferenceTimeEstimator from '../../components/chiquito/LayeredInferenceTimeEstimator.astro';
+import TokenizerEmulator from '../../components/chiquito/TokenizerEmulator.astro';
 
 Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
@@ -64,10 +65,11 @@ import torch
 t = torch.empty(10000, 10000, device="meta")
 print(t.shape) # torch.Size([10000, 10000])
 print(t.device) # meta
-
-# Este tensor ocuparía ~400 MB en float32.
-# En el dispositivo meta, ocupa 0 bytes.
 ```
+
+> Este tensor ocuparía ~400 MB en float32.
+>
+> En el dispositivo meta ocupa 0 bytes.
 
 Esto permite construir la arquitectura completa de un modelo —con todas sus capas, submódulos y dimensiones correctas— sin gastar memoria. La biblioteca `accelerate` de Hugging Face<Note label="Librería accelerate de HuggingFace">La librería [Accelerate](https://huggingface.co/docs/accelerate/index) de Hugging Face es una herramienta diseñada para simplificar el entrenamiento y la ejecución de modelos de aprendizaje automático en distintos entornos de hardware (CPU, GPU, múltiples GPUs o TPUs) sin necesidad de cambiar significativamente el código.</Note> ofrece un gestor de contexto que hace exactamente esto:
 
@@ -78,11 +80,11 @@ from transformers import AutoModelForCausalLM, AutoConfig
 config = AutoConfig.from_pretrained("Qwen/Qwen2.5-32B")
 with init_empty_weights():
     model = AutoModelForCausalLM.from_config(config)
-
-# model es un objeto completo: puedes recorrer sus capas,
-# inspeccionar sus nombres, consultar las dimensiones de
-# cada parámetro... pero no hay pesos reales en memoria.
 ```
+
+> **model** es un objeto completo: puedes recorrer sus capas,
+> inspeccionar sus nombres y consultar las dimensiones de
+> cada parámetro pero no ocupa ningún peso real en memoria.
 
 **Chiquito** se apoya en este mecanismo en tres momentos:
 
@@ -90,41 +92,89 @@ with init_empty_weights():
 - Durante la inferencia carga los pesos reales de cada capa desde RAM a GPU justo antes de ejecutarla.<Note label="Inferencia">Justo antes de usar cada capa para [inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328), se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
 - Y por último, una vez procesada la capa, la devuelve al dispositivo meta, liberando la VRAM.<Note label="Liberación">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria, se [mueve el tensor al dispositivo meta](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
 
-## Optimizaciones
+## Carga desde HuggingFace
 
-La técnica consiste en implementar inferencia secuencial por capas: en cada paso de la inferencia, se mueve a la GPU solo una capa, se ejecuta e inmediatamente se libera. Esto convierte el problema de "necesito 65 GB de VRAM" en "necesito el tamaño de la capa más grande". A partir de esa idea base, hay tres optimizaciones que merece la pena contar:
+Chiquito usa HuggingFace para la carga de modelos. **En HuggingFace, todo modelo tiene un archivo JSON que describe su arquitectura** sin contener ningún peso. Puedes decargarlo con `AutoConfig`:
 
-### 1. Precarga en RAM (en lugar de leer de disco)
+```python
+from transformers import AutoConfig
 
-Está inspirado en AirLLM, pero con una diferencia importante: en vez de leer las capas desde el SSD en cada forward pass, **Chiquito las precarga a RAM** y las mueve de RAM a GPU vía PCIe cuando hace falta.
+config = AutoConfig.from_pretrained(
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+)
+```
 
-¿Por qué? Porque **PCIe es entre 2 y 5 veces más rápido que NVMe**. Si tienes RAM suficiente, mantenerlas en memoria principal es estrictamente mejor.
+| Objeto | Atributo | Valor |
+| :--- | :--- | ---: |
+| config | num_hidden_layers | 22 |
+| config | hidden_size | 2048 |
+| config | vocab_size | 32000 |
+| config | architectures | ["LlamaForCausalLM"] |
 
-### 2. Ventana deslizante para modelos que no caben en RAM
+Esta operación es ligera: descarga el correspondiente archivo `config.json` del modelo sin descargar sus pesos. Chiquito usa la configuración en dos momentos clave:
 
-Cuando ni siquiera la RAM es suficiente, Chiquito mantiene una ventana de N capas cargadas y un hilo en segundo plano va prefetcheando las siguientes mientras la GPU trabaja. Si la ventana está bien dimensionada, la GPU nunca se queda esperando.
+- Para contar las capas y construir la lista de nombres de cada una.<Note label="Conteo de capas">Cuando se [carga la configuración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L167-L189), se crea el modelo en el dispositivo `meta` y se recorre el árbol de módulos para contar cuántas capas tiene.</Note>
+- Para detectar la arquitectura del modelo y saber qué clase instanciar.<Note label="Detección de la arquitectura">El campo `config.architectures[0]` se usa para [seleccionar automáticamente la clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/auto_model.py#L34) de modelo correcta.</Note>
 
-### 3. Cuantización al vuelo
+### El tokenizador
 
-Con `bitsandbytes` se puede aplicar cuantización a 4 u 8 bits sobre la marcha. Para un modelo de 32B, eso baja el footprint de memoria de unos 65 GB a unos 16 GB.
+Los modelos no trabajan con texto sino con secuencias de números enteros. **El tokenizador es el componente que convierte texto en identificadores numéricos** y viceversa.
 
-## Resultados de benchmark
+<TokenizerEmulator defaultText="No tengas miedo a probar cosas" showEmbeddings={false} />
 
-Probando con un modelo de 32B, los tres modos (precarga completa, ventana deslizante, ventana mínima) producen resultados prácticamente idénticos en velocidad: alrededor de **1857 tokens/segundo**. Esto confirma que el prefetch en background hace su trabajo y que el cuello de botella real está en la GPU, no en el transporte de datos.
+ Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Carga del tokenizador">Al iniciarse, Chiquito [carga el tokenizador]((https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152)) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas.
 
-## Para qué (no) sirve Chiquito
+### Los archivos safetensors
 
-Chiquito **no** está pensado para servir modelos en producción ni para batir benchmarks de throughput. Está pensado para que puedas:
+En HuggingFace, **los pesos del modelo se almacenan en archivos safetensors**, un formato binario simple, rápido y que permite mapeo en memoria.<Note label="Safetensors">El formato [safetensors](https://huggingface.co/docs/safetensors/index) fue creado por Hugging Face como alternativa más segura y eficiente al formato pickle que usa PyTorch por defecto. Cada archivo es un mapeo plano de nombre de parámetro a tensor.</Note>
 
-- Cargar un modelo grande en una máquina modesta.
-- Hacer forward passes manualmente, capa a capa.
-- Inspeccionar activaciones intermedias, atenciones, gradientes.
-- Entender, en suma, **qué hace cada capa** en lugar de tratar el modelo como una caja negra.
+En su forma más básica, se usan así:
 
-## Próximos pasos
+```python
+from safetensors.torch import load_file, save_file
 
-- Documentar mejor el API para que sea cómodo "engancharse" a una capa concreta y volcar tensores intermedios.
-- Compatibilidad con más arquitecturas más allá de las basadas en LLaMA.
-- Notebooks didácticos que recorran un forward pass completo paso a paso.
+# Cargar
+state_dict = load_file("model.safetensors", device="cpu")
 
-> *Borrador en preparación. En la versión final incluiré diagramas del flujo de datos entre disco, RAM y GPU, y una comparativa más detallada con AirLLM y otros enfoques.*
+# Guardar
+save_file(state_dict, "output.safetensors")
+```
+
+### Modelos fragmentados y el mapa de pesos
+
+Un modelo pequeño puede caber en un único archivo pero los modelos grandes se fragmentan en varios archivos. Cuando un modelo está fragmentado, existe un archivo índice llamado `model.safetensors.index.json` que mapea cada parámetro al fragmento que lo contiene:
+
+```json
+{
+  "weight_map": {
+    "model.embed_tokens.weight":
+        "model-00001-of-00004.safetensors",
+    "model.layers.0.self_attn.q_proj.weight":
+        "model-00001-of-00004.safetensors",
+    "model.layers.31.mlp.up_proj.weight":
+        "model-00004-of-00004.safetensors",
+    "lm_head.weight":
+        "model-00004-of-00004.safetensors"
+  }
+}
+```
+
+Este mapa de pesos es lo que hace posible la carga selectiva: podemos saber en qué fragmento están los parámetros de una capa concreta sin tener que cargarlo todo. Chiquito parsea este mapa para decidir qué archivos necesita abrir en cada momento.<Note label="Parseo del mapa de pesos">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas. Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
+
+### Descarga desde el Hub
+
+HuggingFace proporciona `snapshot_download()` para descargar los archivos de un modelo a una caché local:
+
+```python
+import huggingface_hub
+
+cache_path = huggingface_hub.snapshot_download(
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    token=None,                   # necesario si el modelo es privado
+    ignore_patterns=["*.bin"],    # ignorar pesos en formato antiguo
+)
+```
+
+Las llamadas posteriores con el mismo identificador devuelven la ruta cacheada sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">La función [`resolve_model_path()`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) intenta usar la ruta como directorio local antes de recurrir a `snapshot_download()`.</Note>
+
+Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.

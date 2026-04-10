@@ -1,0 +1,387 @@
+---
+interface Props {
+  /** Texto inicial para tokenizar */
+  defaultText?: string;
+  /** Mostrar la sección de embeddings (default: true) */
+  showEmbeddings?: boolean;
+}
+
+const { defaultText = "Hola mundo", showEmbeddings = true } = Astro.props;
+---
+
+<div class="tokenizer-emu">
+  <p class="section-label">Texto de entrada</p>
+  <input type="text" id="tok-input" value={defaultText} spellcheck="false" />
+
+  <p class="section-label">Tokens</p>
+  <div class="token-strip" id="tok-strip"></div>
+
+  <p class="section-label">IDs de token</p>
+  <div class="token-ids" id="tok-ids"></div>
+
+  {showEmbeddings && (
+    <p class="section-label">Embeddings <span class="dim-hint">(8 dimensiones)</span></p>
+    <div class="embedding-grid" id="tok-embeddings"></div>
+  )}
+</div>
+
+<style>
+  .tokenizer-emu {
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+    max-width: 720px;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 1.25rem 0 0.5rem;
+  }
+  .section-label:first-child {
+    margin-top: 0;
+  }
+  .dim-hint {
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    outline: none;
+    transition: border-color var(--dur) var(--ease);
+    box-sizing: border-box;
+  }
+  input[type="text"]:focus {
+    border-color: var(--color-accent);
+  }
+
+  /* Token strip */
+  .token-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 2rem;
+  }
+
+  .token-strip :global(.token-chip) {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: var(--color-muted);
+    color: var(--color-foreground);
+    white-space: pre;
+    cursor: default;
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+    animation: chip-in 250ms var(--ease) forwards;
+  }
+  .token-strip :global(.token-chip.removing) {
+    animation: chip-out 180ms var(--ease) forwards;
+  }
+
+  @keyframes chip-in {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes chip-out {
+    to { opacity: 0; transform: translateY(-4px) scale(0.9); }
+  }
+
+  /* Color palette for token chips — 8 cycling hues */
+  .token-strip :global(.token-chip[data-hue="0"]) { background: color-mix(in srgb, #ef4444 15%, var(--color-muted)); border-color: color-mix(in srgb, #ef4444 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="1"]) { background: color-mix(in srgb, #f97316 15%, var(--color-muted)); border-color: color-mix(in srgb, #f97316 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="2"]) { background: color-mix(in srgb, #eab308 15%, var(--color-muted)); border-color: color-mix(in srgb, #eab308 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="3"]) { background: color-mix(in srgb, #22c55e 15%, var(--color-muted)); border-color: color-mix(in srgb, #22c55e 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="4"]) { background: color-mix(in srgb, #06b6d4 15%, var(--color-muted)); border-color: color-mix(in srgb, #06b6d4 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="5"]) { background: color-mix(in srgb, #3b82f6 15%, var(--color-muted)); border-color: color-mix(in srgb, #3b82f6 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="6"]) { background: color-mix(in srgb, #8b5cf6 15%, var(--color-muted)); border-color: color-mix(in srgb, #8b5cf6 30%, var(--color-border)); }
+  .token-strip :global(.token-chip[data-hue="7"]) { background: color-mix(in srgb, #ec4899 15%, var(--color-muted)); border-color: color-mix(in srgb, #ec4899 30%, var(--color-border)); }
+
+  /* Token IDs */
+  .token-ids {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 1.75rem;
+  }
+  .token-ids :global(.token-id) {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+    opacity: 0;
+    transform: translateY(6px);
+    animation: chip-in 250ms var(--ease) forwards;
+  }
+  .token-ids :global(.token-id.removing) {
+    animation: chip-out 180ms var(--ease) forwards;
+  }
+  .token-ids :global(.token-id[data-hue="0"]) { background: color-mix(in srgb, #ef4444 15%, var(--color-muted)); border-color: color-mix(in srgb, #ef4444 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="1"]) { background: color-mix(in srgb, #f97316 15%, var(--color-muted)); border-color: color-mix(in srgb, #f97316 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="2"]) { background: color-mix(in srgb, #eab308 15%, var(--color-muted)); border-color: color-mix(in srgb, #eab308 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="3"]) { background: color-mix(in srgb, #22c55e 15%, var(--color-muted)); border-color: color-mix(in srgb, #22c55e 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="4"]) { background: color-mix(in srgb, #06b6d4 15%, var(--color-muted)); border-color: color-mix(in srgb, #06b6d4 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="5"]) { background: color-mix(in srgb, #3b82f6 15%, var(--color-muted)); border-color: color-mix(in srgb, #3b82f6 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="6"]) { background: color-mix(in srgb, #8b5cf6 15%, var(--color-muted)); border-color: color-mix(in srgb, #8b5cf6 30%, var(--color-border)); }
+  .token-ids :global(.token-id[data-hue="7"]) { background: color-mix(in srgb, #ec4899 15%, var(--color-muted)); border-color: color-mix(in srgb, #ec4899 30%, var(--color-border)); }
+
+  /* Embedding grid */
+  .embedding-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 2rem;
+  }
+  .embedding-grid :global(.emb-row) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transform: translateX(-8px);
+    animation: row-in 300ms var(--ease) forwards;
+  }
+  .embedding-grid :global(.emb-row.removing) {
+    animation: row-out 180ms var(--ease) forwards;
+  }
+
+  @keyframes row-in {
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes row-out {
+    to { opacity: 0; transform: translateX(8px); }
+  }
+
+  .embedding-grid :global(.emb-label) {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    min-width: 70px;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .embedding-grid :global(.emb-cells) {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+  }
+  .embedding-grid :global(.emb-cell) {
+    flex: 1;
+    height: 22px;
+    border-radius: 3px;
+    transition: background-color 400ms var(--ease);
+    position: relative;
+  }
+  .embedding-grid :global(.emb-cell)::after {
+    content: attr(data-val);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--color-foreground);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 520px) {
+    .embedding-grid :global(.emb-label) { min-width: 50px; font-size: 0.55rem; }
+    .embedding-grid :global(.emb-cell) { height: 18px; }
+    .embedding-grid :global(.emb-cell)::after { font-size: 0.45rem; }
+  }
+</style>
+
+<script>
+  (function () {
+    const EMBED_DIM = 8;
+
+    const inputEl = document.getElementById("tok-input") as HTMLInputElement;
+    const stripEl = document.getElementById("tok-strip")!;
+    const idsEl = document.getElementById("tok-ids")!;
+    const embEl = document.getElementById("tok-embeddings");
+
+    // --- Fake tokenizer ---
+    // Splits on word boundaries, punctuation, and spaces (BPE-like appearance)
+    function tokenize(text: string): string[] {
+      if (!text) return [];
+      // Split into chunks that look like BPE tokens:
+      // - words get split if > 5 chars (simulating subword)
+      // - spaces attach to the following word (like GPT-style)
+      // - punctuation is its own token
+      const raw = text.match(/\s+[^\s]*|[^\s]+/g) || [];
+      const tokens: string[] = [];
+      for (const chunk of raw) {
+        // Split long words into subword-like pieces
+        if (chunk.replace(/\s/g, "").length > 5) {
+          const trimmed = chunk.replace(/^\s+/, "");
+          const leading = chunk.slice(0, chunk.length - trimmed.length);
+          // Split into pieces of 2-4 chars
+          let i = 0;
+          while (i < trimmed.length) {
+            const len = Math.min(2 + ((i * 7 + trimmed.charCodeAt(0)) % 3), trimmed.length - i);
+            const piece = (i === 0 ? leading : "") + trimmed.slice(i, i + len);
+            tokens.push(piece);
+            i += len;
+          }
+        } else {
+          tokens.push(chunk);
+        }
+      }
+      return tokens;
+    }
+
+    // --- Deterministic fake token ID from string ---
+    function tokenId(tok: string): number {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < tok.length; i++) {
+        h ^= tok.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return ((h >>> 0) % 50000) + 100; // range 100..50099
+    }
+
+    // --- Deterministic fake embedding from token ID ---
+    function embedding(id: number): number[] {
+      const vec: number[] = [];
+      let s = id;
+      for (let d = 0; d < EMBED_DIM; d++) {
+        // Simple seeded pseudo-random
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        const val = ((s / 0x7fffffff) * 2 - 1); // range -1..1
+        vec.push(Math.round(val * 100) / 100);
+      }
+      return vec;
+    }
+
+    // --- Color for embedding value (-1..1) → blue..neutral..red ---
+    function embColor(v: number): string {
+      const t = (v + 1) / 2; // 0..1
+      if (t < 0.5) {
+        const pct = Math.round((1 - t * 2) * 20);
+        return `color-mix(in srgb, #3b82f6 ${pct}%, var(--color-muted))`;
+      } else {
+        const pct = Math.round((t * 2 - 1) * 20);
+        return `color-mix(in srgb, #ef4444 ${pct}%, var(--color-muted))`;
+      }
+    }
+
+    // --- Render ---
+    let prevTokens: string[] = [];
+
+    function render() {
+      const text = inputEl.value;
+      const tokens = tokenize(text);
+
+      // Avoid re-render if unchanged
+      if (tokens.length === prevTokens.length && tokens.every((t, i) => t === prevTokens[i])) return;
+      prevTokens = tokens;
+
+      // Build new elements
+      const stripFrag = document.createDocumentFragment();
+      const idsFrag = document.createDocumentFragment();
+      const embFrag = embEl ? document.createDocumentFragment() : null;
+
+      tokens.forEach((tok, i) => {
+        const id = tokenId(tok);
+        const emb = embedding(id);
+        const delay = i * 40;
+
+        // Chip
+        const chip = document.createElement("span");
+        chip.className = "token-chip";
+        chip.setAttribute("data-hue", String(i % 8));
+        chip.textContent = tok.replace(/ /g, "\u00B7");
+        chip.style.animationDelay = `${delay}ms`;
+        stripFrag.appendChild(chip);
+
+        // ID
+        const idSpan = document.createElement("span");
+        idSpan.className = "token-id";
+        idSpan.setAttribute("data-hue", String(i % 8));
+        idSpan.textContent = String(id);
+        idSpan.style.animationDelay = `${delay + 60}ms`;
+        idsFrag.appendChild(idSpan);
+
+        // Embedding row
+        if (embFrag) {
+          const row = document.createElement("div");
+          row.className = "emb-row";
+          row.style.animationDelay = `${delay + 120}ms`;
+
+          const label = document.createElement("span");
+          label.className = "emb-label";
+          label.textContent = tok.replace(/ /g, "\u00B7");
+          row.appendChild(label);
+
+          const cells = document.createElement("div");
+          cells.className = "emb-cells";
+          emb.forEach(v => {
+            const cell = document.createElement("div");
+            cell.className = "emb-cell";
+            cell.style.backgroundColor = embColor(v);
+            cell.setAttribute("data-val", v.toFixed(2));
+            cells.appendChild(cell);
+          });
+          row.appendChild(cells);
+          embFrag.appendChild(row);
+        }
+      });
+
+      // Animate out old elements, then replace
+      const allOld = [
+        ...Array.from(stripEl.children),
+        ...Array.from(idsEl.children),
+        ...(embEl ? Array.from(embEl.children) : []),
+      ];
+
+      if (allOld.length === 0) {
+        stripEl.appendChild(stripFrag);
+        idsEl.appendChild(idsFrag);
+        if (embEl && embFrag) embEl.appendChild(embFrag);
+        return;
+      }
+
+      allOld.forEach(el => el.classList.add("removing"));
+
+      setTimeout(() => {
+        stripEl.innerHTML = "";
+        idsEl.innerHTML = "";
+        stripEl.appendChild(stripFrag);
+        idsEl.appendChild(idsFrag);
+        if (embEl && embFrag) {
+          embEl.innerHTML = "";
+          embEl.appendChild(embFrag);
+        }
+      }, 180);
+    }
+
+    // Debounce input
+    let timer: ReturnType<typeof setTimeout>;
+    inputEl.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(render, 150);
+    });
+
+    // Initial render
+    render();
+  })();
+</script>

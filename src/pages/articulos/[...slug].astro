@@ -187,6 +187,32 @@ const fmt = (d: Date) =>
   }
   .prose :global(a) { text-decoration: underline; text-underline-offset: 3px; }
 
+  .prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.95rem;
+  }
+  .prose :global(th) {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted-foreground);
+    text-align: left;
+    padding: 0.625rem 1rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .prose :global(td) {
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-foreground);
+  }
+  .prose :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
   .article-footer {
     padding-block: 3rem 5rem;
   }

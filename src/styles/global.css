@@ -103,6 +103,7 @@
 
 /* Shiki dual-theme: light mode background */
 .astro-code {
+  border: 1.5px solid color-mix(in srgb,var(--color-accent) 30%,var(--color-border)) !important;
   background-color: var(--color-muted) !important;
 }
 
