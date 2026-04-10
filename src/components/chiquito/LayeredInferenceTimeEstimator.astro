@@ -54,15 +54,20 @@ const {
   </div>
 
   <div class="slider-row">
-    <label for="ic-bpp">Bytes por parámetro</label>
-    <input type="range" id="ic-bpp" min="0.5" max="4" step="0.5" value={defaultBpp} />
-    <span class="slider-val"><span id="ic-bpp-out">{defaultBpp}</span> B/p</span>
-  </div>
-
-  <div class="slider-row">
     <label for="ic-tokens">Tokens a generar</label>
     <input type="range" id="ic-tokens" min="1" max="200" step="1" value={defaultTokens} />
-    <span class="slider-val"><span id="ic-tokens-out">{defaultTokens}</span> tok</span>
+    <span class="slider-val"><span id="ic-tokens-out">{defaultTokens}</span></span>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Selector de cuantización -->
+  <p class="section-label">Cuantización</p>
+  <div class="speed-selector" id="ic-bpp-selector">
+    <button class="speed-btn" data-bpp="4">FP32 <span>(4 B/p)</span></button>
+    <button class="speed-btn active" data-bpp="2">BF16 / FP16 <span>(2 B/p)</span></button>
+    <button class="speed-btn" data-bpp="1">INT8 <span>(1 B/p)</span></button>
+    <button class="speed-btn" data-bpp="0.5">INT4 <span>(0,5 B/p)</span></button>
   </div>
 
   <hr class="divider" />
@@ -389,7 +394,7 @@ const {
     function calc() {
       const params = parseFloat($("ic-params").value);
       const exp = parseInt($("ic-transformers").value);
-      const bpp = parseFloat($("ic-bpp").value);
+      const bpp = parseFloat(document.querySelector("#ic-bpp-selector .speed-btn.active").dataset.bpp);
       const tokens = parseInt($("ic-tokens").value);
 
       const transformerLayers = Math.pow(2, exp);
@@ -407,7 +412,6 @@ const {
       // Actualizar readouts de sliders
       $("ic-params-out").textContent = params;
       $("ic-transformers-out").textContent = transformerLayers;
-      $("ic-bpp-out").textContent = bpp;
       $("ic-tokens-out").textContent = tokens;
 
       // Métricas
@@ -439,8 +443,19 @@ const {
     }
 
     // Sliders
-    ["ic-params", "ic-transformers", "ic-bpp", "ic-tokens"].forEach((id) => {
+    ["ic-params", "ic-transformers", "ic-tokens"].forEach((id) => {
       $(id).addEventListener("input", calc);
+    });
+
+    // Botones cuantización
+    document.getElementById("ic-bpp-selector").addEventListener("click", (e) => {
+      const btn = e.target.closest(".speed-btn");
+      if (!btn) return;
+      document
+        .querySelectorAll("#ic-bpp-selector .speed-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      calc();
     });
 
     // Botones PCIe

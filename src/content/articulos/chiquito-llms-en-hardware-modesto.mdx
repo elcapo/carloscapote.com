@@ -32,7 +32,13 @@ En este artículo te hablo sobre **Chiquito**, un repositorio que he creado insp
 
 ## El sacrificio
 
-Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que el enfoque implica una pérdida clara: el rendimiento. Cada vez que cargamos una capa en la memoria de nuestra GPU, estamos realizando una operación que lleva tiempo.
+Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que el enfoque implica una pérdida clara: el rendimiento. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
+
+En mis pruebas use un equipo con 8GB de VRAM y generar 20 tokens llevó más de 30 minutos. Obviamente no puedes usar esta técnica en producción. Úsala cuando quieras examinar cómo funciona un modelo que, de otra manera, no podrías ejecutar en local.
+
+### Estimador de tiempo de inferencia
+
+Aquí te dejo una herramienta que puede ayudarte a hacerte una idea de cuánto tiempo lleva la inferencia con la técnica de carga de parámetros capa por capa.
 
 <LayeredInferenceTimeEstimator />
 
