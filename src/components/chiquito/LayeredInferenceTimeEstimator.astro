@@ -1,0 +1,434 @@
+---
+interface Props {
+  /** Parámetros del modelo en billones (default: 32) */
+  defaultParams?: number;
+  /** Número de transformers: (default: 6) */
+  defaultTransformers?: number;
+  /** Bytes por parámetro: 4=fp32, 2=bf16, 1=int8, 0.5=int4 (default: 2) */
+  defaultBpp?: number;
+  /** Tokens a generar (default: 20) */
+  defaultTokens?: number;
+  /** Ancho de banda PCIe inicial en GB/s (default: 1 → PCIe 3.0 ×1) */
+  defaultPcieBW?: number;
+}
+
+const {
+  defaultParams = 32,
+  defaultTransformers = 6,
+  defaultBpp = 2,
+  defaultTokens = 20,
+  defaultPcieBW = 1,
+} = Astro.props;
+---
+
+<div class="inference-calc">
+  <!-- Resultado principal -->
+  <div class="result-banner">
+    <div class="result-time" id="ic-result-time">107 s</div>
+    <div class="result-desc" id="ic-result-desc">
+      Para generar <strong>20</strong> tokens con un modelo de <strong>32B</strong> parámetros a
+      <strong>2</strong> bytes/parámetro<br />transfiriendo <strong>67</strong> capas desde RAM al GPU por <strong>PCIe 3.0 ×1</strong>.
+    </div>
+  </div>
+
+  <h2 class="sr-only">
+    Calculadora de tiempo de inferencia LLM: estima cuánto tarda generar tokens
+    pasando capas de un modelo por PCIe desde RAM al GPU.
+  </h2>
+
+  <!-- Parámetros del modelo -->
+  <p class="section-label">Parámetros del modelo</p>
+
+  <div class="slider-row">
+    <label for="ic-params">Parámetros del modelo</label>
+    <input type="range" id="ic-params" min="1" max="200" step="1" value={defaultParams} />
+    <span class="slider-val"><span id="ic-params-out">{defaultParams}</span>B</span>
+  </div>
+
+  <div class="slider-row">
+    <label for="ic-transformers">
+      Número de transformers
+    </label>
+    <input type="range" id="ic-transformers" min="1" max="8" step="1" value={defaultTransformers} />
+    <span class="slider-val"><span id="ic-transformers-out">{defaultTransformers}</span></span>
+  </div>
+
+  <div class="slider-row">
+    <label for="ic-bpp">Bytes por parámetro</label>
+    <input type="range" id="ic-bpp" min="0.5" max="4" step="0.5" value={defaultBpp} />
+    <span class="slider-val"><span id="ic-bpp-out">{defaultBpp}</span> B/p</span>
+  </div>
+
+  <div class="slider-row">
+    <label for="ic-tokens">Tokens a generar</label>
+    <input type="range" id="ic-tokens" min="1" max="200" step="1" value={defaultTokens} />
+    <span class="slider-val"><span id="ic-tokens-out">{defaultTokens}</span> tok</span>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Selector de velocidad PCIe -->
+  <p class="section-label">Velocidad de transferencia PCIe</p>
+  <div class="speed-selector" id="ic-speed-selector">
+    <button class="speed-btn active" data-gbps="8"   data-label="PCIe 3.0 ×1">PCIe 3.0 ×1 <span>(1 GB/s)</span></button>
+    <button class="speed-btn" data-gbps="32"  data-label="PCIe 3.0 ×16">PCIe 3.0 ×16 <span>(4 GB/s)</span></button>
+    <button class="speed-btn" data-gbps="64"  data-label="PCIe 4.0 ×16">PCIe 4.0 ×16 <span>(8 GB/s)</span></button>
+    <button class="speed-btn" data-gbps="128" data-label="PCIe 5.0 ×16">PCIe 5.0 ×16 <span>(16 GB/s)</span></button>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Métricas derivadas -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Tamaño por capa</div>
+      <div class="metric-value" id="ic-m-layersize">—</div>
+      <div class="metric-unit" id="ic-m-layersize-unit">MB</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Tamaño total modelo</div>
+      <div class="metric-value" id="ic-m-modelsize">—</div>
+      <div class="metric-unit" id="ic-m-modelsize-unit">GB</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Tiempo por capa</div>
+      <div class="metric-value" id="ic-m-layertime">—</div>
+      <div class="metric-unit">ms</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Cargas totales</div>
+      <div class="metric-value" id="ic-m-loads">1340</div>
+      <div class="metric-unit">capas × tokens</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .inference-calc {
+    font-family: system-ui, sans-serif;
+    color: #1a1a1a;
+    max-width: 720px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Labels de sección */
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 0 0 0.75rem;
+  }
+
+  /* Sliders */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.1rem;
+  }
+  .slider-row label {
+    font-size: 14px;
+    color: #374151;
+    min-width: 190px;
+    line-height: 1.4;
+  }
+  .slider-row label code {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    accent-color: #185fa5;
+  }
+  .slider-val {
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  /* Botones PCIe */
+  .speed-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .speed-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .speed-btn span {
+    color: #9ca3af;
+  }
+  .speed-btn:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+  }
+  .speed-btn.active {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+  .speed-btn.active span {
+    color: #3b82f6;
+  }
+
+  /* Métricas */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin: 1.5rem 0;
+  }
+  .metric {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .metric-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: #111827;
+    line-height: 1.2;
+  }
+  .metric-unit {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+  }
+
+  /* Banner de resultado */
+  .result-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.25rem 0;
+  }
+  .result-time {
+    font-size: 36px;
+    font-weight: 500;
+    color: #185fa5;
+    white-space: nowrap;
+  }
+  .result-desc {
+    font-size: 13px;
+    color: #gray;
+    line-height: 1.6;
+  }
+  .result-desc strong {
+    font-weight: 900;
+  }
+
+  /* Barras */
+  .bar-area {
+    margin: 1.5rem 0;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .bar-label {
+    min-width: 110px;
+  }
+  .bar-track {
+    flex: 1;
+    background: #f3f4f6;
+    border-radius: 4px;
+    height: 18px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .bar-fill--blue  { background: #378add; }
+  .bar-fill--coral { background: #d85a30; }
+  .bar-val {
+    min-width: 65px;
+    text-align: right;
+    font-weight: 500;
+    color: #111827;
+  }
+
+  /* Separador */
+  .divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.5rem 0;
+  }
+
+  /* Nota al pie */
+  .note {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.7;
+    margin-top: 1rem;
+    border-left: 3px solid #e5e7eb;
+    padding-left: 0.75rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .slider-row { flex-wrap: wrap; }
+    .slider-row label { min-width: 100%; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .result-banner { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    .inference-calc { color: #f3f4f6; }
+    .section-label { color: #9ca3af; }
+    .slider-row label { color: #d1d5db; }
+    .slider-row label code { color: #9ca3af; }
+    .slider-val { color: #f9fafb; }
+    .speed-btn { background: #1f2937; border-color: #374151; color: #d1d5db; }
+    .speed-btn span { color: #6b7280; }
+    .speed-btn:hover { background: #374151; border-color: #4b5563; }
+    .speed-btn.active { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
+    .speed-btn.active span { color: #60a5fa; }
+    .metric { background: #1f2937; border-color: #374151; }
+    .metric-label { color: #9ca3af; }
+    .metric-value { color: #f9fafb; }
+    .metric-unit { color: #6b7280; }
+    .formula-box { background: #111827; border-color: #374151; }
+    .f-val { color: #f9fafb; }
+    .f-val strong { color: #60a5fa; }
+    .f-equiv { color: #9ca3af; }
+    .result-banner { background: #1e3a5f; border-color: #1d4ed8; }
+    .result-time { color: #60a5fa; }
+    .result-desc { color: #93c5fd; }
+    .bar-track { background: #374151; }
+    .bar-val { color: #f9fafb; }
+    .divider { border-color: #374151; }
+    .note { color: #6b7280; border-left-color: #374151; }
+  }
+</style>
+
+<script define:vars={{ defaultPcieBW }}>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+
+    // El ancho de banda se toma del atributo del botón activo (en Gbps / 8 = GB/s)
+    let pcieBW = defaultPcieBW;
+
+    function fmt(secs) {
+      if (secs < 0.001) return "~" + (secs * 1000).toFixed(0) + " µs";
+      if (secs < 1) return "~" + (secs * 1000).toFixed(0) + " ms";
+      if (secs < 60) return "~" + secs.toFixed(0) + " s";
+      if (secs < 3600) return "~" + (secs / 60).toFixed(0) + " min";
+      return "~" + (secs / 3600).toFixed(0) + " h";
+    }
+
+    function calc() {
+      const params = parseFloat($("ic-params").value);
+      const exp = parseInt($("ic-transformers").value);
+      const bpp = parseFloat($("ic-bpp").value);
+      const tokens = parseInt($("ic-tokens").value);
+
+      const transformerLayers = Math.pow(2, exp);
+      const extraLayers = 3; // embed + norm + lm_head
+      const totalLayers = transformerLayers + extraLayers;
+
+      const modelGB = (params * 1e9 * bpp) / 1e9;
+      const layerSizeGB = modelGB / totalLayers;
+      const layerSizeMB = layerSizeGB * 1000;
+      const layerTimeMs = (layerSizeGB / pcieBW) * 1000;
+      const loads = totalLayers * tokens;
+      const totalSecs = (layerTimeMs * loads) / 1000;
+      const tokPerSec = tokens / totalSecs;
+
+      // Actualizar readouts de sliders
+      $("ic-params-out").textContent = params;
+      $("ic-transformers-out").textContent = transformerLayers;
+      $("ic-bpp-out").textContent = bpp;
+      $("ic-tokens-out").textContent = tokens;
+
+      // Métricas
+      if (layerSizeMB >= 1000) {
+        $("ic-m-layersize").textContent = layerSizeGB.toFixed(2);
+        $("ic-m-layersize-unit").textContent = "GB / capa";
+      } else {
+        $("ic-m-layersize").textContent = layerSizeMB.toFixed(0);
+        $("ic-m-layersize-unit").textContent = "MB / capa";
+      }
+
+      if (modelGB >= 1000) {
+        $("ic-m-modelsize").textContent = (modelGB / 1000).toFixed(1);
+        $("ic-m-modelsize-unit").textContent = "TB total";
+      } else {
+        $("ic-m-modelsize").textContent = modelGB.toFixed(1);
+        $("ic-m-modelsize-unit").textContent = "GB total";
+      }
+
+      $("ic-m-layertime").textContent =
+        layerTimeMs >= 1 ? layerTimeMs.toFixed(1) : layerTimeMs.toFixed(2);
+      $("ic-m-loads").textContent = loads.toLocaleString();
+
+      // Banner
+      const total = fmt(totalSecs);
+      $("ic-result-time").textContent = total;
+      const activeBtn = document.querySelector("#ic-speed-selector .speed-btn.active");
+      $("ic-result-desc").innerHTML = `para generar <strong>${tokens}</strong> tokens con un modelo de <strong>${params}B</strong> parámetros a <strong>${bpp}</strong> bytes/parámetro<br>transfiriendo <strong>${totalLayers}</strong> capas desde RAM al GPU por <strong>${activeBtn.dataset.label}</strong>.`;
+    }
+
+    // Sliders
+    ["ic-params", "ic-transformers", "ic-bpp", "ic-tokens"].forEach((id) => {
+      $(id).addEventListener("input", calc);
+    });
+
+    // Botones PCIe
+    document.getElementById("ic-speed-selector").addEventListener("click", (e) => {
+      const btn = e.target.closest(".speed-btn");
+      if (!btn) return;
+      document
+        .querySelectorAll("#ic-speed-selector .speed-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      pcieBW = parseInt(btn.dataset.gbps) / 8;
+      calc();
+    });
+
+    // Cálculo inicial
+    calc();
+  })();
+</script>

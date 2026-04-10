@@ -9,7 +9,8 @@ draft: true
 ---
 
 import Note from '../../components/Note.astro';
-import Chart from '../../components/Chart.astro'; 
+import Chart from '../../components/Chart.astro';
+import LayeredInferenceTimeEstimator from '../../components/chiquito/LayeredInferenceTimeEstimator.astro';
 
 Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
@@ -27,7 +28,13 @@ Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la
     ]}
 />
 
-En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por [AirLLM](https://github.com/lyogavin/airllm), de [Gavin Li](https://github.com/lyogavin), y que propone una técnica para poder cargar modelos bastante más grandes que la memoria VRAM disponible: cargarlos poco a poco.
+En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por [AirLLM](https://github.com/lyogavin/airllm) de [Gavin Li](https://github.com/lyogavin), que propone una técnica para poder cargar modelos bastante más grandes que la memoria VRAM disponible: cargarlos poco a poco.
+
+## El sacrificio
+
+Antes de entrar en detalles sobre cómo funciona esta técnica, hay que advertir que el enfoque implica una pérdida clara: el rendimiento. Cada vez que cargamos una capa en la memoria de nuestra GPU, estamos realizando una operación que lleva tiempo.
+
+<LayeredInferenceTimeEstimator />
 
 ## Cómo funciona
 
