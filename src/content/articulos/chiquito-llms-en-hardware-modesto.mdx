@@ -181,7 +181,7 @@ El primero es el **embedding**, una tabla de búsqueda que convierte los identif
 
 ### Transformers
 
-A continuación viene el núcleo del modelo: las **capas transformer**. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de auto atención y una red prealimentada, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras.
+A continuación viene el núcleo del modelo: las **capas transformer**. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de autoatención y una red prealimentada, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras.
 
 Lo relevante es que **son el bloque que se repite *N* veces y concentra la mayor parte de los parámetros del modelo**: un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
 
@@ -275,10 +275,33 @@ Escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad d
     title="Partición por capas simulada sobre un modelo de 2 shards"
 />
 
-## Inferencia
+## Inferencia por capas
+
+Con el modelo ya repartido en archivos por capas llega la pieza que hace que todo lo anterior tenga sentido: ejecutar el modelo iterativamente capa por capa. Cada vez que el modelo tiene que predecir un token nuevo, el *prompt* tiene que pasar por todo el modelo. Este proceso se llama inferencia.<Note label="Implementación de la inferencia">De la implementación completa de la inferencia se encarga la clase [`ChiquitoModel`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L413-L531).</Note>
+
+El problema es el de siempre: no caben los pesos a la vez en la GPU. Lo que hace Chiquito es convertir esa única llamada en una secuencia de pequeñas cargas y descargas: **para cada bloque del modelo carga sus pesos en VRAM, lo ejecuta y los libera antes de pasar al siguiente**.
+
+El resultado es que, en cualquier instante, la VRAM sólo contiene los pesos del bloque que se está ejecutando ahora mismo. **Es como una ventana móvil por la que el modelo va desfilando** mientras el tensor de estados ocultos lo atraviesa de principio a fin.
 
 <ForwardPassTimeline title="Inferencia por capas simulada en un modelo con 2 transformers" />
 
+> Generar un texto no es un proceso por lotes: el ciclo `cargar` → `ejecutar` → `liberar` se repite entero por cada token que se quiere generar. Generar 20 tokens implica recorrer el modelo 20 veces, con todas sus cargas y descargas.
+
+Antes de empezar el recorrido, el proceso de inferencia se asegura de que el modelo arranca desde un estado limpio: todos los parámetros vuelven al dispositivo `meta` y la VRAM queda libre para los bloques de la nueva pasada.<Note label="Reseteo en cada paso">Durante cada [paso de una inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L251-L258), se recorren los parámetros y se mandan al dispositivo `meta`. Los buffers del modelo, en cambio, se mueven de vuelta a GPU porque todas las capas los necesitan.</Note> La excepción son los buffers del modelo, como las tablas de RoPE que vimos antes: al ser pequeños y usarlos todas las capas, se quedan permanentemente en la GPU.
+
 ### Atención causal
 
+Un transformer mira todos los tokens de la secuencia a la vez durante la autoatención y, por defecto, cada token puede atender a todos los demás. Para un modelo que genera texto de izquierda a derecha eso es un problema: al predecir qué palabra debería venir después de la tercera no podemos dejar que el modelo "haga trampa" mirando la cuarta, la quinta y la sexta.
+
+Para evitarlo se usa una "máscara causal" que le dice a la atención qué pares de tokens pueden mirarse. Esa máscara es una matriz que solo contiene los valores verdadero y falso. <Note label="Atención causal">La [máscara triangular](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L451-L453) sigue esta lógica: si la celda `(i, j)` es verdadera, el token de la posición `i` puede atender al de la posición `j`, si es falsa no.</Note>
+
+Pero hay un matiz: la inferencia del modelo no siempre se ejecuta igual. Durante la generación de una respuesta, la inferencia se dispara de dos maneras distintas que se conocen, por convención, como **prefill** y **decode**:
+
+- **Prefill** es la primera llamada. El modelo recibe todo el prompt de golpe y calcula las representaciones internas de cada uno de sus tokens. La máscara es triangular: cada token ve sólo los anteriores y a sí mismo.
+- **Decode** son las llamadas siguientes, una por cada token generado. El modelo recibe **un único token nuevo** —el último que se ha producido— que atiende a todo lo que ya hay en la caché. La máscara se reduce a una sola fila.
+
 <AttentionMaskVisualizer />
+
+La máscara no es lo único que cambia entre prefill y decode. Los números de posición que RoPE usa para rotar los vectores internos, también son distintos: en prefill son la lista `[0, 1, ..., n-1]` con todas las posiciones del prompt; en decode son una única posición, la del token recién generado.<Note label="Cálculo de los position_ids">Chiquito los calcula en [`model.py:465-472`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L465-L472) con `torch.arange(past_len, total_len)`, donde `past_len` es la longitud actual de la caché y `total_len` la longitud total vista por este forward. En prefill `past_len` vale 0; en decode `total_len - past_len` vale 1.</Note>
+
+Con la máscara preparada, los números de posición resueltos y el bucle de carga y descarga listo, ya tenemos todo lo que necesitamos para recorrer el modelo de principio a fin y devolver los logits de salida. Pero eso es sólo un token de los muchos que queremos generar: para producir una respuesta completa hay que ejecutar la inferencia una y otra vez y, entre llamada y llamada, decidir cuál de los tokens propuestos es el que se queda.

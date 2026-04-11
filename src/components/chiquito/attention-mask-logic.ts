@@ -96,5 +96,5 @@ export function phaseLabel(
   if (phase === 'prefill') {
     return `prefill · ${visibleCount} × ${visibleCount}`;
   }
-  return `decode · fila ${visibleCount} sobre ${visibleCount - 1} en caché + 1 nuevo`;
+  return `decode · fila ${visibleCount}: ${visibleCount - 1} tokens en caché + 1 token nuevo`;
 }
