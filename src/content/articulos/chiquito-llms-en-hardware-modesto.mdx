@@ -375,3 +375,31 @@ En ese momento comienza el baile: el consumidor ejecuta una capa y la libera, no
 Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Lectura fuera del lock">La [carga de una capa](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda; cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
 
 La caché se destruye y se vuelve a crear en cada paso del bucle generativo.<Note label="Reinicio por token">Al [inicio de cada inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L303-L309) se detiene la caché anterior y se arranca una nueva desde cero. La ventana solo tiene sentido dentro de una misma pasada por el modelo: al llegar al último bloque, el hilo productor ya no tiene nada que hacer.</Note> Es decir: la ventana no persiste entre tokens. Se construye, recorre las *M* capas durante ese paso y se desmonta al llegar a la última. En la siguiente iteración, cuando toca generar el siguiente token, vuelve a empezar el warmup desde cero.
+
+## Cuantización
+
+Hasta aquí todas las optimizaciones han sido sobre cuándo y dónde guardar los pesos, no sobre cuánto pesan. La última pieza va justo al contrario: reducir el tamaño de cada peso antes de moverlo. En el bucle capa a capa el cuello de botella no es la GPU calculando sino el bus PCIe transportando pesos desde RAM hasta VRAM, así que **si cada tensor ocupa la mitad, cada transferencia tarda la mitad**.
+
+Chiquito no aporta nada original en este frente: se apoya en **bitsandbytes**, que es la librería estándar para esto.<Note label="Bits and bytes">[bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) ofrece dos modos de cuantización al vuelo: **8 bits** y **4 bits** y se encarga de sustituir las capas lineales del modelo por variantes cuantizadas que convierten el tensor en el momento en que se mueve a GPU.</Note>
+
+La aritmética es la que cabría esperar. En fp16 cada parámetro ocupa 2 bytes; en 8 bits, 1 byte; en 4 bits, medio byte. **Pasar a 4 bits reduce cuatro veces el coste de transferencia**, que es el que manda.<Note label="Cuantización">Durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L211-L237), si el usuario pide cuantización, se crea un `BitsAndBytesConfig` y se deja que `bitsandbytes` reemplace las capas lineales.</Note>
+
+### Tamaño por capa
+
+| Modelo | fp16 | 8-bit | 4-bit (nf4) |
+|---|---:|---:|---:|
+| `TinyLlama/TinyLlama-1.1B-Chat-v1.0` | 84 MB | 42 MB | 21 MB |
+| `Qwen/Qwen2.5-7B` | 445 MB | 222 MB | 111 MB |
+| `Qwen/Qwen2.5-32B` | 930 MB | 465 MB | 233 MB |
+
+Esta tabla muestra lo que más impacta durante la inferencia: **la información que viaja por PCIe en cada paso del bucle**. Un Qwen2.5-32B pasa de mover 930 MB por capa en fp16 a mover 233 MB en 4 bits y eso ocurre una vez por capa y por token generado.
+
+### Tamaño del modelo completo
+
+| Modelo | fp16 | 8-bit | 4-bit (nf4) |
+|---|---:|---:|---:|
+| `TinyLlama/TinyLlama-1.1B-Chat-v1.0` | 2.05 GB | 1.02 GB | 525 MB |
+| `Qwen/Qwen2.5-7B` | 14.18 GB | 7.09 GB | 3.55 GB |
+| `Qwen/Qwen2.5-32B` | 61.03 GB | 30.51 GB | 15.26 GB |
+
+Esta tabla informa sobre lo que decide si una máquina concreta puede siquiera alojar el modelo entero en RAM: el mismo modelo pide 61 GB en fp16 —inviable en casi cualquier equipo doméstico— pero cabe en 15 GB cuando se cuantiza a 4 bits, que entra cómodamente en los 32 GB de muchos portátiles.
