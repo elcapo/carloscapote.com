@@ -403,3 +403,21 @@ Esta tabla muestra lo que más impacta durante la inferencia: **la información 
 | `Qwen/Qwen2.5-32B` | 61.03 GB | 30.51 GB | 15.26 GB |
 
 Esta tabla informa sobre lo que decide si una máquina concreta puede siquiera alojar el modelo entero en RAM: el mismo modelo pide 61 GB en fp16 —inviable en casi cualquier equipo doméstico— pero cabe en 15 GB cuando se cuantiza a 4 bits, que entra cómodamente en los 32 GB de muchos portátiles.
+
+## Conclusiones
+
+Como hemos visto, se puede cargar un modelo que no cabe en la VRAM de una GPU doméstica. Pero al precio de aceptar que la inferencia tardará mucho más: los ~30 minutos que cuestan 20 tokens con un modelo de 32B en 8 GB de VRAM no son un error de implementación, son el coste real de mover los pesos a la VRAM una y otra vez. **Chiquito no es una optimización para producción, es una lupa para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
+
+Lo interesante es que las tres piezas que hacen esto posible son sorprendentemente clásicas:
+
+- La inferencia capa por capa es una aplicación directa del patrón de jerarquía de memoria: si el nivel rápido no cabe, despachas en bloques.
+- La ventana deslizante es un productor-consumidor de manual con bloqueo.
+- La cuantización es tamaño contra precisión, delegada en una librería estándar.
+
+Ninguna de las ideas es nueva y esa es precisamente la gracia: con piezas conocidas bien combinadas se puede hacer caber lo que no cabe, siempre que aceptes el sacrificio en rendimiento.
+
+Si has llegado hasta aquí con ganas de jugar, clona Chiquito,<Note label="Github de Chiquito">Puedes encontrar las fuentes de **Chiquito** en [elcapo/chiquito](https://github.com/elcapo/chiquito).</Note> apúntalo a un modelo que no te quepa en la GPU y échale paciencia.
+
+> Ahora ya sabes por qué se llama Chiquito.
+>
+> ¡Te das Qwen!

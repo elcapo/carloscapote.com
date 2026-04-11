@@ -227,12 +227,17 @@ const ssrSvg = renderChartSvg(config, height);
             borderColor: colors.border,
             borderWidth: 1,
             callbacks: {
+              title: (items) => {
+                const p = items[0]?.parsed as { x: number; y: number } | undefined;
+                if (!p) return '';
+                const x = Number.isFinite(p.x) ? p.x.toLocaleString() : String(p.x);
+                return cfg.xLabel ? `${cfg.xLabel}: ${x}` : x;
+              },
               label: (ctx) => {
                 const p = ctx.parsed as { x: number; y: number };
-                const x = Number.isFinite(p.x) ? p.x.toLocaleString() : p.x;
-                const y = Number.isFinite(p.y) ? p.y.toLocaleString() : p.y;
-                const label = ctx.dataset.label;
-                return label ? `${label}: (${x}, ${y})` : `(${x}, ${y})`;
+                const y = Number.isFinite(p.y) ? p.y.toLocaleString() : String(p.y);
+                const label = ctx.dataset.label || cfg.yLabel;
+                return label ? `${label}: ${y}` : y;
               },
             },
           },
