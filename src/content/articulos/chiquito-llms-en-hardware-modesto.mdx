@@ -332,4 +332,46 @@ Chiquito aprovecha esto cuando precarga los pesos en RAM: cada tensor que baja a
 
 ## Precarga RAM con ventana deslizante
 
-<SlidingWindowCache />
+Ya hemos tocado la precarga de reojo al hablar de la memoria clavada, pero no hemos explicado qué alternativas hay ni cuál usa Chiquito por defecto. El recorrido capa a capa que vimos en la sección de inferencia lee cada bloque del disco justo antes de ejecutarlo, y lo hace además *cada vez* que la capa aparece en el bucle.
+
+Con 67 capas y veinte tokens por generar son más de mil lecturas de disco por respuesta. La buena noticia es que ese disco se puede cambiar por RAM: si tienes algo de memoria libre, puedes precargar por adelantado los pesos que el bucle de inferencia va a pedir a continuación. Chiquito ofrece tres estrategias distintas, todas controladas por un parámetro.<Note label="Interpretación del parámetro">El constructor del modelo interpreta el [parámetro `preload_to_ram`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L129-L135) así: `True` reserva RAM para el modelo entero, `False` desactiva la precarga por completo y un entero *N* precarga una ventana deslizante de *N* capas.</Note>
+
+| `preload_to_ram` | Dónde viven los pesos | RAM que usa | Velocidad |
+| :---: | :--- | :--- | :--- |
+| `True` | RAM del sistema (clavada) | Modelo entero | La más rápida |
+| `False` | Disco | Mínima | La más lenta |
+| *N* | RAM del sistema, *N* capas | Proporcional a *N* | Intermedia |
+
+### Precargar el modelo entero
+
+En el modo más agresivo, Chiquito vuelca al arrancar todas las capas del modelo a una caché local en RAM clavada. A partir de ese momento la función que carga pesos a CPU deja de tocar el disco.<Note label="Precarga y despacho">La carga en bloque ocurre durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) y el [despacho posterior](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L311-L316) devuelve el diccionario ya preparado sin tocar el disco.</Note>
+
+Es el modo más rápido por dos motivos:
+
+- Ya no hay lecturas de disco durante el bucle de inferencia.
+- La RAM clavada permite a CUDA mover los pesos a GPU por DMA sin copia intermedia.
+
+A cambio, **el modelo entero tiene que caber en RAM**: un modelo de 32B en fp16 pide unos 65 GB solo para los pesos.
+
+### Leer siempre del disco
+
+En el otro extremo, si la RAM es muy escasa se puede saltar la caché y leer cada capa desde disco cada vez que el bucle la necesita. Es lo más lento pero funciona con prácticamente cualquier configuración: en RAM solo hay una capa a la vez.
+
+Aun así, este modo no es tan ingenuo como parece. Mientras la GPU ejecuta la capa *N*, un hilo de fondo ya está leyendo la capa *N+1* desde disco.<Note label="Prefetching en disk-only">El bucle de inferencia lanza un [hilo con un solo trabajador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L468-L475) y, [al final de cada iteración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L484-L491), le pide que vaya trayendo la siguiente capa en paralelo con la ejecución actual.</Note> Es una precarga de un único paso por delante, suficiente para que, si la ejecución de una capa tarda más que leer la siguiente, el coste del disco desaparezca casi por completo.
+
+### La ventana deslizante
+
+El punto intermedio es el más interesante y donde Chiquito aplica un patrón clásico de concurrencia. Cuando tienes RAM libre pero no suficiente para el modelo entero, puedes mantener solo *N* capas en memoria al mismo tiempo y dejar que un hilo de fondo reponga la ventana a medida que el bucle de inferencia la vacía por la cola.<Note label="La caché de ventana">Toda la lógica vive en la clase [`_SlidingWindowCache`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L27-L94), que sincroniza productor y consumidor con una [`threading.Condition`](https://docs.python.org/3/library/threading.html#threading.Condition): un *lock* acompañado de un mecanismo de `wait`/`notify`.</Note> Es un **patrón productor-consumidor** de manual:
+
+- el **consumidor** es el bucle de inferencia, que coge una capa, la ejecuta y la suelta en cuanto termina;
+- el **productor** es un hilo de fondo que, cada vez que se libera un hueco, lo aprovecha para cargar la siguiente capa pendiente.
+
+Antes de arrancar el recorrido propiamente dicho, Chiquito precarga las *N* primeras capas de forma síncrona.<Note label="Warmup de la ventana">Cuando [empieza la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L47-L58), se llena la ventana inicial antes de lanzar el hilo de fondo, garantizando que cuando se procese la primera capa los pesos ya estarán disponibles.</Note> Solo cuando la ventana está llena echa a andar el hilo productor y cede el control al bucle de inferencia.
+
+En ese momento comienza el baile: el consumidor ejecuta una capa y la libera, notificando al productor; el productor ocupa el hueco cargando la siguiente capa de la ventana mientras tanto el consumidor ya estaba pidiéndole la siguiente capa a consumir a la caché, y así sucesivamente.
+
+<SlidingWindowCache title="Ventana deslizante simulada sobre un modelo de 8 capas" />
+
+Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Lectura fuera del lock">La [carga de una capa](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda; cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
+
+La caché se destruye y se vuelve a crear en cada paso del bucle generativo.<Note label="Reinicio por token">Al [inicio de cada inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L303-L309) se detiene la caché anterior y se arranca una nueva desde cero. La ventana solo tiene sentido dentro de una misma pasada por el modelo: al llegar al último bloque, el hilo productor ya no tiene nada que hacer.</Note> Es decir: la ventana no persiste entre tokens. Se construye, recorre las *M* capas durante ese paso y se desmonta al llegar a la última. En la siguiente iteración, cuando toca generar el siguiente token, vuelve a empezar el warmup desde cero.
