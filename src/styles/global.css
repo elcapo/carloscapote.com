@@ -41,12 +41,12 @@
 }
 
 :root {
-  /* Swiss Modernism 2.0 — Light */
+  /* Light */
   --color-primary: #18181B;
   --color-on-primary: #FFFFFF;
   --color-secondary: #3F3F46;
-  --color-accent: #2563EB;
-  --color-accent-hover: #1D4ED8;
+  --color-accent: #AA2B95;
+  --color-accent-hover: #CB5AB8;
   --color-background: #FAFAFA;
   --color-foreground: #09090B;
   --color-muted: #F1F3F5;
@@ -74,14 +74,14 @@
     --color-primary: #FAFAFA;
     --color-on-primary: #09090B;
     --color-secondary: #A1A1AA;
-    --color-accent: #60A5FA;
-    --color-accent-hover: #93C5FD;
+    --color-accent: #CB5AB8;
+    --color-accent-hover: #E3AAD9;
     --color-background: #09090B;
     --color-foreground: #FAFAFA;
     --color-muted: #18181B;
     --color-muted-foreground: #A1A1AA;
     --color-border: #27272A;
-    --color-destructive: #F87171;
+    --color-destructive: #FA5F5F;
     --color-ring: #FAFAFA;
   }
 }
@@ -90,14 +90,14 @@
   --color-primary: #FAFAFA;
   --color-on-primary: #09090B;
   --color-secondary: #A1A1AA;
-  --color-accent: #60A5FA;
-  --color-accent-hover: #93C5FD;
+  --color-accent: #CB5AB8;
+  --color-accent-hover: #E3AAD9;
   --color-background: #09090B;
   --color-foreground: #FAFAFA;
   --color-muted: #18181B;
   --color-muted-foreground: #A1A1AA;
   --color-border: #27272A;
-  --color-destructive: #F87171;
+  --color-destructive: #FA5F5F;
   --color-ring: #FAFAFA;
 }
 
