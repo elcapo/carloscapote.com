@@ -1,0 +1,402 @@
+---
+/**
+ * Simulador interactivo del forward pass capa por capa de Chiquito.
+ *
+ * El slider avanza por el ciclo `cargar → ejecutar → liberar` de cada
+ * bloque del modelo (embed, capas transformer, norm, lm_head), mostrando
+ * cómo la VRAM funciona como una ventana móvil por la que pasa un único
+ * bloque a la vez mientras el tensor de estados ocultos atraviesa el
+ * modelo de principio a fin.
+ */
+import {
+  deriveBlocks,
+  buildSnapshot,
+  totalSteps,
+  stepLabel,
+  blockStateLabel,
+} from './forward-pass-timeline-logic';
+
+interface Props {
+  /** Nº de capas transformer del modelo de ejemplo. Default: 2. */
+  numTransformerLayers?: number;
+  /** Pie de figura opcional. */
+  title?: string;
+}
+
+const { numTransformerLayers = 2, title } = Astro.props;
+const blocks = deriveBlocks(numTransformerLayers);
+const maxStep = totalSteps(blocks.length);
+const initialSnapshot = buildSnapshot(blocks, 0);
+const initialLabel = stepLabel(blocks, 0);
+---
+
+<figure
+  class="timeline"
+  data-forward-timeline
+  data-blocks={JSON.stringify(blocks)}
+>
+  <header class="timeline-header">
+    <div class="timeline-step">
+      <span class="label-muted mono">paso</span>
+      <span class="step-counter mono" data-step-counter>{initialLabel.short}</span>
+    </div>
+    <input
+      type="range"
+      class="timeline-slider"
+      data-step-slider
+      min="0"
+      max={maxStep}
+      step="1"
+      value="0"
+      aria-label="Progreso del forward pass"
+    />
+  </header>
+
+  <p class="timeline-description mono">
+    <svg
+      class="timeline-description-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
+      <path d="M8 7.25 V12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+    <span data-step-description>{initialLabel.long}</span>
+  </p>
+
+  <div class="timeline-body">
+    <div class="timeline-col">
+      <h4 class="col-title mono">Pesos del modelo</h4>
+      <ul class="block-list" data-block-list>
+        {initialSnapshot.blocks.map((b) => (
+          <li
+            class={`block-row is-${b.state} kind-${b.kind}`}
+            data-block-index={b.index}
+          >
+            <span class="block-name mono">{b.name}</span>
+            <span class="block-state mono" data-block-state>
+              {blockStateLabel(b.state)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="timeline-col">
+      <h4 class="col-title mono">VRAM</h4>
+      <div class="vram-slot" data-vram-slot>
+        <div class="vram-label mono">Ranura de bloque</div>
+        <div class="vram-content" data-vram-content>
+          <span class="vram-empty mono">(vacía)</span>
+        </div>
+      </div>
+      <div class="vram-buffers">
+        <div class="vram-label mono">Buffers permanentes</div>
+        <div class="vram-buffer-item mono">
+          <span class="vram-buffer-name">RoPE (cos, sin)</span>
+          <span class="vram-buffer-note">siempre en GPU</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {title && <figcaption>{title}</figcaption>}
+</figure>
+
+<style>
+  .timeline {
+    margin-block: 2rem;
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .timeline-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 64px;
+  }
+  .label-muted {
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .step-counter {
+    font-size: 0.95rem;
+    color: var(--color-foreground);
+  }
+  .timeline-slider {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .timeline-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    color: var(--color-muted-foreground);
+    min-height: 3em;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  .timeline-description-icon {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--color-accent);
+  }
+
+  .timeline-body {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    .timeline-body { grid-template-columns: 1fr; }
+  }
+
+  .timeline-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .col-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin: 0;
+  }
+
+  /* Lista de bloques */
+  .block-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+  .block-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background: var(--color-muted);
+    font-size: 0.75rem;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .block-row.is-idle {
+    background: transparent;
+    border-style: dashed;
+  }
+  .block-row.is-loading {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-muted));
+  }
+  .block-row.is-running {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 18%, var(--color-muted));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+  .block-row.is-freed {
+    opacity: 0.45;
+  }
+  .block-name {
+    color: var(--color-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .block-row.is-idle .block-name {
+    color: var(--color-muted-foreground);
+  }
+  .block-state {
+    color: var(--color-muted-foreground);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .block-row.is-loading .block-state,
+  .block-row.is-running .block-state {
+    color: var(--color-accent);
+  }
+
+  /* Panel VRAM */
+  .vram-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.85rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+    min-height: 5.5rem;
+  }
+  .vram-label {
+    font-size: 0.6rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .vram-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 2.6rem;
+    justify-content: center;
+  }
+  .vram-empty {
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+  .vram-content :global(.vram-current) {
+    font-size: 0.8rem;
+    color: var(--color-foreground);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .vram-content :global(.vram-status) {
+    font-size: 0.65rem;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .vram-buffers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .vram-buffer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-foreground);
+  }
+  .vram-buffer-note {
+    font-size: 0.6rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .timeline figcaption {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    text-align: center;
+  }
+</style>
+
+<script>
+  import {
+    buildSnapshot,
+    stepLabel,
+    blockStateLabel,
+    type Block,
+  } from './forward-pass-timeline-logic';
+
+  function setup(root: HTMLElement) {
+    let blocks: Block[] = [];
+    try {
+      blocks = JSON.parse(root.dataset.blocks || '[]');
+    } catch {
+      return;
+    }
+
+    const slider = root.querySelector<HTMLInputElement>('[data-step-slider]');
+    const counter = root.querySelector<HTMLElement>('[data-step-counter]');
+    const desc = root.querySelector<HTMLElement>('[data-step-description]');
+    const blockList = root.querySelector<HTMLElement>('[data-block-list]');
+    const vramContent = root.querySelector<HTMLElement>('[data-vram-content]');
+    if (!slider || !counter || !desc || !blockList || !vramContent) return;
+
+    function renderVram(
+      currentIndex: number | null,
+      substep: 'idle' | 'load' | 'run' | 'free',
+    ) {
+      vramContent!.innerHTML = '';
+      if (currentIndex === null || substep === 'idle' || substep === 'free') {
+        const empty = document.createElement('span');
+        empty.className = 'vram-empty mono';
+        empty.textContent = '(vacía)';
+        vramContent!.appendChild(empty);
+        return;
+      }
+      const block = blocks[currentIndex];
+      const name = document.createElement('span');
+      name.className = 'vram-current mono';
+      name.textContent = block.name;
+      const status = document.createElement('span');
+      status.className = 'vram-status mono';
+      status.textContent = substep === 'load' ? 'cargando pesos…' : 'ejecutando…';
+      vramContent!.appendChild(name);
+      vramContent!.appendChild(status);
+    }
+
+    function update(step: number) {
+      const snap = buildSnapshot(blocks, step);
+      const labels = stepLabel(blocks, step);
+      counter!.textContent = labels.short;
+      desc!.textContent = labels.long;
+
+      for (const b of snap.blocks) {
+        const row = blockList!.querySelector<HTMLElement>(
+          `[data-block-index="${b.index}"]`,
+        );
+        if (!row) continue;
+        row.classList.remove('is-idle', 'is-loading', 'is-running', 'is-freed');
+        row.classList.add(`is-${b.state}`);
+        const stateEl = row.querySelector<HTMLElement>('[data-block-state]');
+        if (stateEl) stateEl.textContent = blockStateLabel(b.state);
+      }
+
+      renderVram(snap.currentBlockIndex, snap.currentSubstep);
+    }
+
+    slider.addEventListener('input', () => {
+      const step = parseInt(slider.value, 10);
+      if (Number.isFinite(step)) update(step);
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-forward-timeline]')
+    .forEach(setup);
+</script>

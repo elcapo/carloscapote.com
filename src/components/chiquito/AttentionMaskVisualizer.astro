@@ -1,0 +1,482 @@
+---
+/**
+ * Visualizador de máscaras de atención causal para el forward pass.
+ *
+ * Funciona sobre una frase fija. Se arranca mostrando los primeros
+ * `startTokens` tokens en modo prefill (todas las filas marcadas como
+ * "current"). Cada click en "generar" añade un token más en modo decode:
+ * las filas anteriores quedan en caché y sólo la nueva se considera
+ * computada en el forward actual. El botón se deshabilita cuando ya no
+ * quedan tokens por revelar. El botón "reiniciar" vuelve al estado
+ * inicial.
+ */
+import {
+  tokenizeSimple,
+  buildMatrix,
+  positionIdsForPhase,
+  displayToken,
+  phaseLabel,
+} from './attention-mask-logic';
+
+interface Props {
+  /** Frase completa sobre la que se va a iterar. */
+  text?: string;
+  /** Nº de tokens visibles al arrancar (fase prefill). */
+  startTokens?: number;
+  /** Pie de figura opcional. */
+  title?: string;
+}
+
+const {
+  text = 'No tengas miedo a probar cosas nuevas',
+  startTokens = 4,
+  title,
+} = Astro.props;
+
+const allTokens = tokenizeSimple(text);
+const clampedStart = Math.max(1, Math.min(startTokens, allTokens.length));
+const initialMatrix = buildMatrix(clampedStart, 'prefill');
+const initialPositions = positionIdsForPhase('prefill', clampedStart);
+const initialPhaseLabel = phaseLabel('prefill', clampedStart);
+const initialCols = Math.max(1, clampedStart);
+const generateDisabled = clampedStart >= allTokens.length;
+---
+
+<figure
+  class="mask-viz"
+  data-mask-viz
+  data-tokens={JSON.stringify(allTokens)}
+  data-start-tokens={clampedStart}
+>
+  <header class="mask-header">
+    <div class="mask-prompt-preview mono" data-prompt-preview>
+      <span class="label-muted">frase</span>
+      <span class="prompt-text">
+        {allTokens.map((tok, i) => (
+          <span
+            class={`prompt-word ${i < clampedStart ? 'is-visible' : 'is-hidden'}`}
+            data-prompt-word-index={i}
+          >{tok}</span>
+        ))}
+      </span>
+    </div>
+    <div class="mask-actions">
+      <button
+        type="button"
+        class="mask-btn mono"
+        data-generate-btn
+        disabled={generateDisabled}
+      >generar siguiente token</button>
+      <button
+        type="button"
+        class="mask-btn mask-btn-ghost mono"
+        data-reset-btn
+      >reiniciar</button>
+    </div>
+  </header>
+
+  <p class="mask-description mono">
+    <svg
+      class="mask-description-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
+      <path d="M8 7.25 V12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+    <span data-mode-label>{initialPhaseLabel}</span>
+  </p>
+
+  <div class="mask-legend mono" aria-hidden="true">
+    <span class="legend-item">
+      <span class="legend-swatch is-current"></span>
+      <span class="legend-label">computando ahora</span>
+    </span>
+    <span class="legend-item">
+      <span class="legend-swatch is-cached"></span>
+      <span class="legend-label">en caché</span>
+    </span>
+  </div>
+
+  <div
+    class="mask-grid"
+    data-matrix
+    style={`grid-template-columns: auto repeat(${initialCols}, minmax(28px, 1fr));`}
+  >
+    <div class="mask-corner"></div>
+    {Array.from({ length: clampedStart }).map((_, i) => (
+      <div class="mask-col-label mono" title={allTokens[i]}>
+        {displayToken(allTokens[i])}
+      </div>
+    ))}
+    {initialMatrix.map((row, i) => (
+      <>
+        <div class="mask-row-label mono" title={allTokens[i]}>
+          {displayToken(allTokens[i])}
+        </div>
+        {row.map((cell) => (
+          <div class={`mask-cell is-${cell}`}></div>
+        ))}
+      </>
+    ))}
+  </div>
+
+  <div class="mask-positions mono">
+    <span class="label-muted">position_ids</span>
+    <code class="mask-positions-value" data-positions>
+      [{initialPositions.join(', ')}]
+    </code>
+  </div>
+
+  {title && <figcaption>{title}</figcaption>}
+</figure>
+
+<style>
+  .mask-viz {
+    margin-block: 2rem;
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .mask-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+  .mask-prompt-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+    min-width: 0;
+  }
+  .label-muted {
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .prompt-text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+  }
+  .prompt-word {
+    padding: 0.25rem 0.45rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-border);
+    transition:
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease);
+  }
+  .prompt-word.is-visible {
+    color: var(--color-foreground);
+    background: var(--color-muted);
+  }
+  .prompt-word.is-hidden {
+    display: none;
+  }
+
+  .mask-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .mask-btn {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.55rem 0.85rem;
+    border: 1.5px solid var(--color-accent);
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-foreground);
+    cursor: pointer;
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .mask-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  .mask-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    border-color: var(--color-border);
+    background: transparent;
+    color: var(--color-muted-foreground);
+  }
+  .mask-btn-ghost {
+    border-color: var(--color-border);
+    background: transparent;
+    color: var(--color-muted-foreground);
+  }
+  .mask-btn-ghost:hover:not(:disabled) {
+    background: var(--color-muted);
+    color: var(--color-foreground);
+  }
+
+  .mask-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    color: var(--color-muted-foreground);
+    min-height: 2em;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+  }
+  .mask-description-icon {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--color-accent);
+  }
+
+  /* Leyenda */
+  .mask-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    font-size: 0.7rem;
+    color: var(--color-muted-foreground);
+    margin-bottom: 0.75rem;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+  .legend-swatch.is-current {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+  .legend-swatch.is-cached {
+    background: color-mix(in srgb, var(--color-muted-foreground) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-muted-foreground) 50%, transparent);
+  }
+  .legend-label {
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+
+  /* Matriz.
+   *
+   * Los hijos de `.mask-grid` se reconstruyen con `document.createElement`
+   * cada vez que cambia el estado. Esos nodos no heredan el atributo de
+   * scoping que Astro inyecta en los elementos del template, así que hay
+   * que envolver todos los selectores de sus hijos en `:global(...)` para
+   * que las reglas se les apliquen también a ellos. */
+  .mask-grid {
+    display: grid;
+    gap: 3px;
+    margin-block: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .mask-grid :global(.mask-corner) {
+    background: transparent;
+  }
+  .mask-grid :global(.mask-col-label),
+  .mask-grid :global(.mask-row-label) {
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    padding: 0.2rem 0.25rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mask-grid :global(.mask-col-label) {
+    justify-content: center;
+    border-bottom: 1px solid var(--color-border);
+    text-align: center;
+  }
+  .mask-grid :global(.mask-row-label) {
+    justify-content: flex-end;
+    border-right: 1px solid var(--color-border);
+    padding-right: 0.5rem;
+    min-width: 4.5rem;
+  }
+  .mask-grid :global(.mask-cell) {
+    aspect-ratio: 1;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 4px;
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  .mask-grid :global(.mask-cell.is-current) {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+  .mask-grid :global(.mask-cell.is-cached) {
+    background: color-mix(in srgb, var(--color-muted-foreground) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-muted-foreground) 50%, transparent);
+  }
+  .mask-grid :global(.mask-cell.is-masked) {
+    background: transparent;
+    border: 1px dashed var(--color-border);
+    opacity: 0.5;
+  }
+
+  .mask-positions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 0.375rem;
+    background: transparent;
+  }
+  .mask-positions-value {
+    color: var(--color-foreground);
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .mask-viz figcaption {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    text-align: center;
+  }
+</style>
+
+<script>
+  import {
+    buildMatrix,
+    positionIdsForPhase,
+    displayToken,
+    phaseLabel,
+    type Phase,
+  } from './attention-mask-logic';
+
+  type State = {
+    visibleCount: number;
+    phase: Phase;
+  };
+
+  function setup(root: HTMLElement) {
+    let tokens: string[] = [];
+    let startTokens = 1;
+    try {
+      tokens = JSON.parse(root.dataset.tokens || '[]');
+      startTokens = parseInt(root.dataset.startTokens || '1', 10) || 1;
+    } catch {
+      return;
+    }
+
+    const matrix = root.querySelector<HTMLElement>('[data-matrix]');
+    const modeLabel = root.querySelector<HTMLElement>('[data-mode-label]');
+    const positionsEl = root.querySelector<HTMLElement>('[data-positions]');
+    const genBtn = root.querySelector<HTMLButtonElement>('[data-generate-btn]');
+    const resetBtn = root.querySelector<HTMLButtonElement>('[data-reset-btn]');
+    const promptPreview = root.querySelector<HTMLElement>('[data-prompt-preview]');
+    if (!matrix || !modeLabel || !positionsEl || !genBtn || !resetBtn || !promptPreview) return;
+
+    let state: State = { visibleCount: startTokens, phase: 'prefill' };
+
+    function createCell(cell: 'masked' | 'current' | 'cached'): HTMLDivElement {
+      const div = document.createElement('div');
+      div.className = `mask-cell is-${cell}`;
+      return div;
+    }
+
+    function createLabel(cls: string, token: string): HTMLDivElement {
+      const el = document.createElement('div');
+      el.className = `${cls} mono`;
+      el.textContent = displayToken(token);
+      if (token) el.title = token;
+      return el;
+    }
+
+    function rebuildMatrix() {
+      const { visibleCount, phase } = state;
+      const mat = buildMatrix(visibleCount, phase);
+      const cols = Math.max(1, visibleCount);
+
+      matrix!.style.gridTemplateColumns = `auto repeat(${cols}, minmax(28px, 1fr))`;
+      matrix!.innerHTML = '';
+
+      const corner = document.createElement('div');
+      corner.className = 'mask-corner';
+      matrix!.appendChild(corner);
+
+      for (let i = 0; i < visibleCount; i++) {
+        matrix!.appendChild(createLabel('mask-col-label', tokens[i] ?? ''));
+      }
+
+      for (let i = 0; i < mat.length; i++) {
+        matrix!.appendChild(createLabel('mask-row-label', tokens[i] ?? ''));
+        for (const cell of mat[i]) {
+          matrix!.appendChild(createCell(cell));
+        }
+      }
+    }
+
+    function updatePromptPreview() {
+      const words = promptPreview!.querySelectorAll<HTMLElement>(
+        '[data-prompt-word-index]',
+      );
+      words.forEach((el) => {
+        const idx = parseInt(el.dataset.promptWordIndex || '0', 10);
+        const visible = idx < state.visibleCount;
+        el.classList.toggle('is-visible', visible);
+        el.classList.toggle('is-hidden', !visible);
+      });
+    }
+
+    function updateButtons() {
+      genBtn!.disabled = state.visibleCount >= tokens.length;
+    }
+
+    function update() {
+      rebuildMatrix();
+      modeLabel!.textContent = phaseLabel(state.phase, state.visibleCount);
+      const positions = positionIdsForPhase(state.phase, state.visibleCount);
+      positionsEl!.textContent = `[${positions.join(', ')}]`;
+      updatePromptPreview();
+      updateButtons();
+    }
+
+    genBtn.addEventListener('click', () => {
+      if (state.visibleCount >= tokens.length) return;
+      state = {
+        visibleCount: state.visibleCount + 1,
+        phase: 'decode',
+      };
+      update();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      state = { visibleCount: startTokens, phase: 'prefill' };
+      update();
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-mask-viz]').forEach(setup);
+</script>

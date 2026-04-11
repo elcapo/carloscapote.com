@@ -13,6 +13,8 @@ import Chart from '../../components/Chart.astro';
 import LayeredInferenceTimeEstimator from '../../components/chiquito/LayeredInferenceTimeEstimator.astro';
 import TokenizerEmulator from '../../components/chiquito/TokenizerEmulator.astro';
 import CheckpointSplitter from '../../components/chiquito/CheckpointSplitter.astro';
+import ForwardPassTimeline from '../../components/chiquito/ForwardPassTimeline.astro';
+import AttentionMaskVisualizer from '../../components/chiquito/AttentionMaskVisualizer.astro';
 
 Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
@@ -272,3 +274,11 @@ Escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad d
     }}
     title="Partición por capas simulada sobre un modelo de 2 shards"
 />
+
+## Inferencia
+
+<ForwardPassTimeline title="Inferencia por capas simulada en un modelo con 2 transformers" />
+
+### Atención causal
+
+<AttentionMaskVisualizer />
