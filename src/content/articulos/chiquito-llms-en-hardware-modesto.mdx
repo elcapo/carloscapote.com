@@ -330,7 +330,7 @@ Queda un último detalle que no es exactamente una limpieza pero forma parte del
 
 Chiquito aprovecha esto cuando precarga los pesos en RAM: cada tensor que baja a su caché local se marca como clavado.<Note label="Dónde se clava">Al inicializar el modelo, se [precargan todas las capas](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) a la RAM clavada.</Note> Así que cuando llega el turno de esa capa su traspaso a VRAM salta directamente vía DMA sin copia intermedia. Eso hace que el modo de precarga no sólo ahorre lecturas de disco sino que además mueva los pesos a la GPU de forma notablemente más rápida.
 
-## Precarga RAM con ventana deslizante
+## Precarga con ventana deslizante
 
 Ya hemos tocado la precarga de reojo al hablar de la memoria clavada, pero no hemos explicado qué alternativas hay ni cuál usa Chiquito por defecto. El recorrido capa a capa que vimos en la sección de inferencia lee cada bloque del disco justo antes de ejecutarlo, y lo hace además *cada vez* que la capa aparece en el bucle.
 
