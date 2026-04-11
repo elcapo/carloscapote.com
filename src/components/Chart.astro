@@ -80,10 +80,18 @@ const config = {
 };
 
 const chartId = `chart-${crypto.randomUUID().slice(0, 8)}`;
+
+// Render SSR a SVG con chartjs-node-canvas. El cliente lo reemplaza por un
+// <canvas> interactivo con Chart.js al hidratar. Los colores aquí son los
+// valores resueltos del tema claro; al hidratar, el canvas cliente lee las
+// CSS vars vivas y puede diferir del esquema oscuro.
+const { renderChartSvg } = await import('./chart-ssr');
+const ssrSvg = renderChartSvg(config, height);
 ---
 
 <figure class="chart" style={`--chart-height: ${height}px;`}>
-  <div class="chart-canvas-wrap">
+  <div class="chart-canvas-wrap" data-chart-wrap>
+    <div class="chart-ssr" set:html={ssrSvg} aria-hidden="true"></div>
     <canvas
       id={chartId}
       data-chart={JSON.stringify(config)}
@@ -102,10 +110,30 @@ const chartId = `chart-${crypto.randomUUID().slice(0, 8)}`;
     width: 100%;
     height: var(--chart-height, 320px);
   }
+  .chart-ssr {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .chart-ssr :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
   .chart canvas {
     display: block;
     width: 100% !important;
     height: 100% !important;
+    position: relative;
+    z-index: 1;
+  }
+  /* Una vez el canvas cliente está listo, ocultamos el SVG SSR. */
+  .chart-canvas-wrap[data-hydrated] .chart-ssr {
+    display: none;
+  }
+  .chart-canvas-wrap:not([data-hydrated]) canvas {
+    visibility: hidden;
   }
   .chart figcaption {
     margin-top: 0.75rem;
@@ -255,6 +283,9 @@ const chartId = `chart-${crypto.randomUUID().slice(0, 8)}`;
     const Ctor = await ensureChart();
     const chart = new Ctor(canvas, buildConfig(cfg));
     instances.set(canvas, { chart, cfg });
+    // Marca el wrapper como hidratado para que el SVG SSR desaparezca.
+    const wrap = canvas.closest('[data-chart-wrap]') as HTMLElement | null;
+    if (wrap) wrap.setAttribute('data-hydrated', '');
   }
 
   function observeAll() {

@@ -187,6 +187,22 @@ const fmt = (d: Date) =>
   }
   .prose :global(a) { text-decoration: underline; text-underline-offset: 3px; }
 
+  /* Los charts y los diagramas mermaid rompen la columna estrecha del
+     texto y se extienden hasta el ancho del contenedor del artículo
+     (1200px), centrados respecto al viewport. */
+  .prose :global(.chart),
+  .prose :global(svg[id^="mermaid-"]) {
+    width: min(var(--container, 1200px), calc(100vw - 5rem));
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+  .prose :global(svg[id^="mermaid-"]) {
+    display: block;
+    height: auto;
+    margin-block: 2rem;
+  }
+
   .prose :global(table) {
     width: 100%;
     border-collapse: collapse;

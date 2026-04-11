@@ -134,10 +134,10 @@ Un modelo pequeño puede caber en un único archivo pero los modelos grandes se 
 
 | Peso | Fichero |
 | :---  | :--- |
-| model.embed_tokens.weight | model-00001-of-00004.safetensors |
-| model.layers.0.self_attn.q_proj.weight | model-00001-of-00004.safetensors |
-| model.layers.31.mlp.up_proj.weight | model-00004-of-00004.safetensors |
-| lm_head.weight | model-00004-of-00004.safetensors |
+| `model.embed_tokens.weight` | model-00001-of-00004.safetensors |
+| `model.layers.0.self_attn.q_proj.weight` | model-00001-of-00004.safetensors |
+| `model.layers.31.mlp.up_proj.weight` | model-00004-of-00004.safetensors |
+| `lm_head.weight` | model-00004-of-00004.safetensors |
 
 Este mapa de pesos es lo que hace posible la carga selectiva: podemos saber en qué fragmento están los parámetros de una capa concreta sin tener que cargarlo todo. Chiquito parsea este mapa para decidir qué archivos necesita abrir en cada momento.<Note label="Parseo del mapa de pesos">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas. Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
 
@@ -158,3 +158,57 @@ cache_path = huggingface_hub.snapshot_download(
 La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en que fueron guardados. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de recurrir a `snapshot_download()`.</Note>
 
 Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.
+
+## La arquitectura transformer
+
+Para cargar un modelo capa por capa no hace falta entender en profundidad sus matemáticas internas. Basta con tener claro que **un modelo causal de lenguaje es una tubería de cuatro bloques** por los que los datos fluyen en orden:
+
+```mermaid
+flowchart LR
+    C(Embeddings) --> D@{ shape: processes, label: "Transformers" }
+    D --> E(Normalización)
+    E --> F(Cabeza)
+```
+
+### Los cuatro bloques
+
+El primero es el **embedding**, una tabla de búsqueda que convierte los identificadores enteros que produce el tokenizador en vectores densos. Si el vocabulario tiene 32.000 tokens y la dimensión oculta es 2.048, el embedding es una matriz de forma `(32000, 2048)`. Recibe un tensor `(batch, seq_len)` y devuelve un tensor `(batch, seq_len, hidden_dim)`.
+
+A continuación vienen las **capas transformer**, que son el núcleo del modelo. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de auto-atención y una red feed-forward, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras. Lo relevante es que **son el bloque que se repite N veces y concentra la mayor parte de los parámetros del modelo**: un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
+
+Después de la última capa viene la **normalización final** (habitualmente RMSNorm), que estabiliza los estados ocultos antes de la proyección final sin cambiar sus dimensiones.
+
+Y por último, el **LM head**, una proyección lineal que lleva los estados ocultos desde la dimensión oculta hasta el tamaño del vocabulario. Su salida es un vector de **logits** con una puntuación por cada token del vocabulario. El token con la puntuación más alta es, a grandes rasgos, la predicción del modelo para la siguiente posición.
+
+### La convención de nombres
+
+Los modelos de HuggingFace siguen un esquema de nombres consistente. Para los modelos tipo Llama —que incluyen Llama, Mistral, Qwen2 y muchos otros— los nombres son:
+
+| Bloque | Ruta del módulo |
+| :--- | :--- |
+| Embedding | `model.embed_tokens` |
+| Capa transformer i | `model.layers.i` |
+| Normalización final | `model.norm` |
+| LM head | `lm_head` |
+
+Estos nombres son los que aparecen como prefijos en el `state_dict` del modelo. Por ejemplo, `model.layers.5.self_attn.q_proj.weight` es la matriz de proyección de las queries en la capa transformer número 5. Chiquito los guarda como una variable de clase<Note label="Nombres de bloques">Chiquito define los nombres como [una variable de clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L99-L104) para poder adaptarlos fácilmente a arquitecturas que usan otra convención, como ChatGLM, que llama a sus capas `transformer.encoder.layers`.</Note> para poder adaptarse a arquitecturas que usen otros nombres.
+
+### Recorrer el árbol de módulos
+
+Una vez creado el modelo sobre el dispositivo meta, podemos acceder a cualquier submódulo por su nombre recorriendo el árbol de atributos:
+
+```python
+module = model
+for attr in "model.layers".split("."):
+    module = getattr(module, attr)
+```
+
+Chiquito usa este mecanismo para construir, al arrancar, una lista ordenada con todos los bloques del modelo.<Note label="Construcción de la lista de capas">El método [`_build_layers()`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292) recorre el árbol del modelo para cada uno de los cuatro tipos de bloque y guarda referencias a los módulos junto con sus nombres.</Note> El resultado es una secuencia del tipo `[embed, layer.0, layer.1, ..., norm, lm_head]` que el bucle de inferencia recorre de principio a fin, cargando los pesos de cada bloque justo antes de ejecutarlo y liberándolos después.
+
+### Las Rotary Position Embeddings
+
+Los transformers necesitan saber en qué posición está cada token dentro de la secuencia. De lo contrario, *"el gato se sentó en la alfombra"* y *"alfombra la en sentó se gato el"* serían indistinguibles para el modelo. La mayoría de los modelos modernos usan **Rotary Position Embeddings** (RoPE), que codifican la posición rotando los vectores de queries y keys.
+
+Para lo que nos ocupa, lo importante es que las RoPE se calculan una sola vez —justo después del embedding— a partir de los IDs de posición y se pasan a todas las capas transformer como una tupla `(cos, sin)`. Además, el módulo que las calcula **no es un parámetro entrenado sino un buffer**, así que vive permanentemente en la GPU y no necesita cargarse capa por capa.<Note label="Cálculo de las RoPE">Chiquito [calcula las embeddings posicionales](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L340-L346) una vez al principio de cada paso de inferencia y las reutiliza en todas las capas.</Note>
+
+Con los cuatro bloques identificados, los nombres mapeados y las posiciones resueltas, Chiquito ya tiene todo lo que necesita para iterar el modelo de principio a fin cargando pesos bajo demanda.
