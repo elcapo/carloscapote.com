@@ -48,7 +48,48 @@ const generateDisabled = clampedStart >= allTokens.length;
   data-tokens={JSON.stringify(allTokens)}
   data-start-tokens={clampedStart}
 >
-  <header class="mask-header">
+  <div
+    class="mask-grid"
+    data-matrix
+    style={`grid-template-columns: auto repeat(${initialCols}, minmax(28px, 1fr));`}
+  >
+    <div class="mask-corner"></div>
+    {Array.from({ length: clampedStart }).map((_, i) => (
+      <div class="mask-col-label mono" title={allTokens[i]}>
+        {displayToken(allTokens[i])}
+      </div>
+    ))}
+    {initialMatrix.map((row, i) => (
+      <>
+        <div class="mask-row-label mono" title={allTokens[i]}>
+          {displayToken(allTokens[i])}
+        </div>
+        {row.map((cell) => (
+          <div class={`mask-cell is-${cell}`}></div>
+        ))}
+      </>
+    ))}
+  </div>
+
+  <div class="mask-legend mono" aria-hidden="true">
+    <span class="legend-item">
+      <span class="legend-swatch is-current"></span>
+      <span class="legend-label">computando ahora</span>
+    </span>
+    <span class="legend-item">
+      <span class="legend-swatch is-cached"></span>
+      <span class="legend-label">en caché</span>
+    </span>
+  </div>
+
+  <div class="mask-positions mono">
+    <span class="label-muted">position_ids</span>
+    <code class="mask-positions-value" data-positions>
+      [{initialPositions.join(', ')}]
+    </code>
+  </div>
+
+  <footer class="mask-footer">
     <div class="mask-prompt-preview mono" data-prompt-preview>
       <span class="label-muted">frase</span>
       <span class="prompt-text">
@@ -73,7 +114,7 @@ const generateDisabled = clampedStart >= allTokens.length;
         data-reset-btn
       >reiniciar</button>
     </div>
-  </header>
+  </footer>
 
   <p class="mask-description mono">
     <svg
@@ -91,47 +132,6 @@ const generateDisabled = clampedStart >= allTokens.length;
     <span data-mode-label>{initialPhaseLabel}</span>
   </p>
 
-  <div class="mask-legend mono" aria-hidden="true">
-    <span class="legend-item">
-      <span class="legend-swatch is-current"></span>
-      <span class="legend-label">computando ahora</span>
-    </span>
-    <span class="legend-item">
-      <span class="legend-swatch is-cached"></span>
-      <span class="legend-label">en caché</span>
-    </span>
-  </div>
-
-  <div
-    class="mask-grid"
-    data-matrix
-    style={`grid-template-columns: auto repeat(${initialCols}, minmax(28px, 1fr));`}
-  >
-    <div class="mask-corner"></div>
-    {Array.from({ length: clampedStart }).map((_, i) => (
-      <div class="mask-col-label mono" title={allTokens[i]}>
-        {displayToken(allTokens[i])}
-      </div>
-    ))}
-    {initialMatrix.map((row, i) => (
-      <>
-        <div class="mask-row-label mono" title={allTokens[i]}>
-          {displayToken(allTokens[i])}
-        </div>
-        {row.map((cell) => (
-          <div class={`mask-cell is-${cell}`}></div>
-        ))}
-      </>
-    ))}
-  </div>
-
-  <div class="mask-positions mono">
-    <span class="label-muted">position_ids</span>
-    <code class="mask-positions-value" data-positions>
-      [{initialPositions.join(', ')}]
-    </code>
-  </div>
-
   {title && <figcaption>{title}</figcaption>}
 </figure>
 
@@ -144,11 +144,12 @@ const generateDisabled = clampedStart >= allTokens.length;
 
   .mono { font-family: var(--font-mono); }
 
-  .mask-header {
+  .mask-footer {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.85rem;
+    margin-top: 0.75rem;
     margin-bottom: 0.75rem;
   }
   .mask-prompt-preview {
