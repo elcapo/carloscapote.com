@@ -22,6 +22,8 @@ export type SsrConfig = {
   yLabel?: string;
   xScale: 'linear' | 'logarithmic';
   yScale: 'linear' | 'logarithmic';
+  xTicks?: number[];
+  yTicks?: number[];
 };
 
 // Valores fijos del tema claro. El cliente, al hidratar, lee las CSS vars
@@ -96,6 +98,15 @@ function buildConfig(cfg: SsrConfig): ChartConfiguration {
           ticks: { color: THEME.muted },
           grid: { color: THEME.border },
           border: { color: THEME.border },
+          ...(cfg.xTicks && cfg.xTicks.length > 0
+            ? {
+                min: Math.min(...cfg.xTicks),
+                max: Math.max(...cfg.xTicks),
+                afterBuildTicks: (axis) => {
+                  axis.ticks = cfg.xTicks!.map((value) => ({ value }));
+                },
+              }
+            : {}),
         },
         y: {
           type: cfg.yScale,
@@ -105,6 +116,15 @@ function buildConfig(cfg: SsrConfig): ChartConfiguration {
           ticks: { color: THEME.muted },
           grid: { color: THEME.border },
           border: { color: THEME.border },
+          ...(cfg.yTicks && cfg.yTicks.length > 0
+            ? {
+                min: Math.min(...cfg.yTicks),
+                max: Math.max(...cfg.yTicks),
+                afterBuildTicks: (axis) => {
+                  axis.ticks = cfg.yTicks!.map((value) => ({ value }));
+                },
+              }
+            : {}),
         },
       },
     },

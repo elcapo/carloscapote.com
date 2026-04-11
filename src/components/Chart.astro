@@ -47,6 +47,10 @@ interface Props {
   title?: string;
   /** Alto en píxeles. Por defecto 320. */
   height?: number;
+  /** Valores explícitos para los ticks del eje X. Si se omite, Chart.js los elige. */
+  xTicks?: number[];
+  /** Valores explícitos para los ticks del eje Y. Si se omite, Chart.js los elige. */
+  yTicks?: number[];
 }
 
 const {
@@ -58,6 +62,8 @@ const {
   yScale = 'linear',
   title,
   height = 320,
+  xTicks,
+  yTicks,
 } = Astro.props;
 
 // Normaliza `data` a formato multi-serie para simplificar el script.
@@ -77,6 +83,8 @@ const config = {
   yLabel,
   xScale: normalizeScale(xScale),
   yScale: normalizeScale(yScale),
+  xTicks,
+  yTicks,
 };
 
 const chartId = `chart-${crypto.randomUUID().slice(0, 8)}`;
@@ -159,6 +167,8 @@ const ssrSvg = renderChartSvg(config, height);
     yLabel?: string;
     xScale: 'linear' | 'logarithmic';
     yScale: 'linear' | 'logarithmic';
+    xTicks?: number[];
+    yTicks?: number[];
   };
 
   // Lee una variable CSS del :root y la devuelve trim-eada.
@@ -236,6 +246,15 @@ const ssrSvg = renderChartSvg(config, height);
             ticks: { color: colors.muted },
             grid: { color: colors.border },
             border: { color: colors.border },
+            ...(cfg.xTicks && cfg.xTicks.length > 0
+              ? {
+                  min: Math.min(...cfg.xTicks),
+                  max: Math.max(...cfg.xTicks),
+                  afterBuildTicks: (axis) => {
+                    axis.ticks = cfg.xTicks!.map((value) => ({ value }));
+                  },
+                }
+              : {}),
           },
           y: {
             type: cfg.yScale,
@@ -245,6 +264,15 @@ const ssrSvg = renderChartSvg(config, height);
             ticks: { color: colors.muted },
             grid: { color: colors.border },
             border: { color: colors.border },
+            ...(cfg.yTicks && cfg.yTicks.length > 0
+              ? {
+                  min: Math.min(...cfg.yTicks),
+                  max: Math.max(...cfg.yTicks),
+                  afterBuildTicks: (axis) => {
+                    axis.ticks = cfg.yTicks!.map((value) => ({ value }));
+                  },
+                }
+              : {}),
           },
         },
       },
