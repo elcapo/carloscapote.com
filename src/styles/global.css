@@ -122,6 +122,81 @@
   background-color: var(--color-muted) !important;
 }
 
+/* Mermaid: override de colores baked-in cuando estamos en modo oscuro.
+   El SVG lo genera rehype-mermaid con el tema neutral en tiempo de build,
+   así que los `fill` / `stroke` vienen con valores fijos (#eee, #000, ...)
+   y con selectores `#mermaid-X` que ganan por especificidad — de ahí los
+   `!important`. Las etiquetas HTML (foreignObject) heredan `color` del
+   prose, así que no hace falta tocarlas. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .node rect,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .node circle,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .node ellipse,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .node polygon,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .node path {
+    fill: var(--color-muted) !important;
+    stroke: var(--color-border) !important;
+  }
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .cluster rect {
+    fill: var(--color-background) !important;
+    stroke: var(--color-border) !important;
+  }
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .cluster-label text,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .cluster-label span {
+    fill: var(--color-foreground) !important;
+    color: var(--color-foreground) !important;
+  }
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .marker,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .marker.cross,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .arrowheadPath,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .edgePath .path,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .flowchart-link {
+    stroke: var(--color-muted-foreground) !important;
+    fill: var(--color-muted-foreground) !important;
+  }
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .edgeLabel,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .edgeLabel p,
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .labelBkg {
+    background-color: var(--color-background) !important;
+  }
+  :root:not([data-theme="light"]) svg[id^="mermaid-"] .edgeLabel rect {
+    fill: var(--color-background) !important;
+  }
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .node rect,
+:root[data-theme="dark"] svg[id^="mermaid-"] .node circle,
+:root[data-theme="dark"] svg[id^="mermaid-"] .node ellipse,
+:root[data-theme="dark"] svg[id^="mermaid-"] .node polygon,
+:root[data-theme="dark"] svg[id^="mermaid-"] .node path {
+  fill: var(--color-muted) !important;
+  stroke: var(--color-border) !important;
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .cluster rect {
+  fill: var(--color-background) !important;
+  stroke: var(--color-border) !important;
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .cluster-label text,
+:root[data-theme="dark"] svg[id^="mermaid-"] .cluster-label span {
+  fill: var(--color-foreground) !important;
+  color: var(--color-foreground) !important;
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .marker,
+:root[data-theme="dark"] svg[id^="mermaid-"] .marker.cross,
+:root[data-theme="dark"] svg[id^="mermaid-"] .arrowheadPath,
+:root[data-theme="dark"] svg[id^="mermaid-"] .edgePath .path,
+:root[data-theme="dark"] svg[id^="mermaid-"] .flowchart-link {
+  stroke: var(--color-muted-foreground) !important;
+  fill: var(--color-muted-foreground) !important;
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .edgeLabel,
+:root[data-theme="dark"] svg[id^="mermaid-"] .edgeLabel p,
+:root[data-theme="dark"] svg[id^="mermaid-"] .labelBkg {
+  background-color: var(--color-background) !important;
+}
+:root[data-theme="dark"] svg[id^="mermaid-"] .edgeLabel rect {
+  fill: var(--color-background) !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
