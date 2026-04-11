@@ -1,0 +1,8 @@
+services:
+  web:
+    build: .
+    image: carloscapote-com:latest
+    container_name: carloscapote-com
+    restart: unless-stopped
+    ports:
+      - "8080:80"
