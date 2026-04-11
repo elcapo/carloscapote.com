@@ -12,6 +12,7 @@ import Note from '../../components/Note.astro';
 import Chart from '../../components/Chart.astro';
 import LayeredInferenceTimeEstimator from '../../components/chiquito/LayeredInferenceTimeEstimator.astro';
 import TokenizerEmulator from '../../components/chiquito/TokenizerEmulator.astro';
+import CheckpointSplitter from '../../components/chiquito/CheckpointSplitter.astro';
 
 Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
@@ -224,3 +225,50 @@ La mayoría de los modelos modernos resuelven esto con las Rotary Position Embed
 Lo relevante para Chiquito es algo mucho más práctico: estas posiciones se calculan una sola vez al principio de cada inferencia y se reutilizan en todas las capas. Además, el módulo que las calcula no es un parámetro entrenado del modelo sino una tabla derivada de la configuración, así que cabe siempre en memoria y no necesita cargarse y descargarse capa por capa como el resto de los pesos.<Note label="Cálculo de las RoPE">Chiquito [calcula las embeddings posicionales](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L340-L346) una vez al principio de cada paso de inferencia y las reutiliza en todas las capas.</Note>
 
 Con los cuatro bloques identificados, los nombres mapeados y las posiciones resueltas, Chiquito ya tiene todo lo que necesita para iterar el modelo de principio a fin cargando pesos bajo demanda.
+
+## Partición por capas
+
+Hasta aquí ya sabemos que HuggingFace guarda los pesos en uno o varios archivos safetensors y que el mapa de pesos nos dice dónde vive cada tensor. El problema es que **los pesos de una misma capa pueden estar repartidos entre varios fragmentos** y que cada fragmento, a su vez, mezcla pesos de capas distintas. Si para usar una capa tuviéramos que abrir el fragmento que la contiene y descartar todo lo demás, estaríamos leyendo cientos de megas sobrantes cada vez que pasáramos por esa capa.
+
+Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar sus pesos en un formato que le resulte cómodo: crea un directorio nuevo dentro del modelo, `chiquito_split/` y **escribe dentro un archivo Safetensors por cada bloque del transformer**.<Note label="Dónde ocurre la partición">La lógica de esta partición de modelos vive en [`splitter.py`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py).</Note> Así, durante la ejecución del modelo, cargar una capa concreta es abrir un único archivo con solo los pesos que esa capa necesita y ninguno de más.
+
+> La partición es un coste que se paga una sola vez. La primera vez que Chiquito procesa un modelo nuevo lleva un rato, porque tiene que leer todos los fragmentos originales y escribir los nuevos por capas. Las siguientes veces detecta que ya está hecho y se salta el paso entero.
+
+### Tener en memoria lo justo
+
+El algoritmo es cuidadoso con la memoria. En lugar de cargar todos los fragmentos de golpe, va abriendo **solo los que la capa actual necesita**, acumula lo leído y borra los tensores de cada capa en cuanto acaba de escribirla en su archivo definitivo. Como las capas suelen estar en orden y los fragmentos originales contienen bloques contiguos, el proceso avanza de principio a fin sin llegar a tener nunca el modelo entero en RAM al mismo tiempo.
+
+Cuando una capa vive a caballo entre dos fragmentos —cosa que pasa con frecuencia en los modelos reales—, el proceso tiene que mantener los dos cargados a la vez durante el rato en que escribe esa capa. Es inevitable: no se puede guardar una capa a medias.
+
+### El marcador `.done`
+
+Hay un detalle del proceso que tiene una motivación muy concreta. Después de escribir cada archivo Safetensors, Chiquito crea junto a él un segundo archivo vacío con el mismo nombre y la extensión `.done` añadida.
+
+Escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad de la escritura, lo que queda en disco es un archivo incompleto: existe, pero es inservible. **El marcador `.done` se crea justo después de que la escritura haya terminado sin problemas**, así que su mera presencia es la prueba de que el archivo de esa capa está íntegro.<Note label="Recuperación tras un corte">Si Chiquito se relanza después de una interrupción, [comprueba el directorio de partición](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L17-L22) y solo vuelve a procesar las capas cuyo `.done` no aparece. Las demás se asumen correctas y no se tocan.</Note>
+
+<CheckpointSplitter
+    weightMap={{
+        "model.embed_tokens.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.self_attn.q_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.self_attn.k_proj.weight": "model-00001-of-00002.safetensors",
+        "model.layers.0.self_attn.v_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.self_attn.o_proj.weight": "model-00001-of-00002.safetensors",
+        "model.layers.0.mlp.gate_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.mlp.up_proj.weight": "model-00001-of-00002.safetensors",
+        "model.layers.0.mlp.down_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.input_layernorm.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.0.post_attention_layernorm.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.1.self_attn.q_proj.weight": "model-00001-of-00002.safetensors",
+        "model.layers.1.self_attn.k_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.1.self_attn.v_proj.weight": "model-00001-of-00002.safetensors", 
+        "model.layers.1.self_attn.o_proj.weight": "model-00002-of-00002.safetensors", 
+        "model.layers.1.mlp.gate_proj.weight": "model-00002-of-00002.safetensors", 
+        "model.layers.1.mlp.up_proj.weight": "model-00002-of-00002.safetensors", 
+        "model.layers.1.mlp.down_proj.weight": "model-00002-of-00002.safetensors", 
+        "model.layers.1.input_layernorm.weight": "model-00002-of-00002.safetensors", 
+        "model.layers.1.post_attention_layernorm.weight": "model-00002-of-00002.safetensors", 
+        "model.norm.weight": "model-00002-of-00002.safetensors", 
+        "lm_head.weight": "model-00002-of-00002.safetensors" 
+    }}
+    title="Partición por capas simulada sobre un modelo de 2 shards"
+/>

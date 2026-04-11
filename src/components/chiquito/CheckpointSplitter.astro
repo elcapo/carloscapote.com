@@ -1,0 +1,371 @@
+---
+/**
+ * Simulador interactivo del splitter de checkpoints de Chiquito.
+ *
+ * Recibe un `weight_map` de HuggingFace (nombre de tensor → archivo shard)
+ * y opcionalmente una lista ordenada de capas. El slider avanza por dos
+ * subpasos por capa (fichero escrito → marcador .done creado) con un
+ * estado 0 inicial en el que todavía no se ha generado nada.
+ */
+import {
+  deriveLayerNames,
+  buildSnapshot,
+  totalSteps,
+  stepLabel,
+  type WeightMap,
+} from './checkpoint-splitter-logic';
+
+interface Props {
+  /** Mapa `weight_map` tal cual aparece en `model.safetensors.index.json`. */
+  weightMap: WeightMap;
+  /** Orden explícito de capas. Si se omite, se deriva del `weight_map`. */
+  layerNames?: string[];
+  /** Pie de figura opcional. */
+  title?: string;
+}
+
+const { weightMap, layerNames: layerNamesProp, title } = Astro.props;
+const layerNames = layerNamesProp ?? deriveLayerNames(weightMap);
+const maxStep = totalSteps(layerNames.length);
+const initialSnapshot = buildSnapshot(weightMap, layerNames, 0);
+const initialLabel = stepLabel(layerNames, 0);
+---
+
+<figure
+  class="splitter"
+  data-splitter
+  data-weight-map={JSON.stringify(weightMap)}
+  data-layer-names={JSON.stringify(layerNames)}
+>
+  <header class="splitter-header">
+    <div class="splitter-step">
+      <span class="label-muted mono">paso</span>
+      <span class="step-counter mono" data-step-counter>{initialLabel.short}</span>
+    </div>
+    <input
+      type="range"
+      class="splitter-slider"
+      data-step-slider
+      min="0"
+      max={maxStep}
+      step="1"
+      value="0"
+      aria-label="Progreso del splitter"
+    />
+  </header>
+
+  <p class="splitter-description mono">
+    <svg
+      class="splitter-description-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
+      <path d="M8 7.25 V12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+    <span data-step-description>{initialLabel.long}</span>
+  </p>
+
+  <div class="splitter-body">
+    <div class="splitter-col">
+      <h4 class="col-title mono">Shards de origen</h4>
+      <ul class="shard-list" data-shard-list>
+        {initialSnapshot.shards.map((s) => (
+          <li
+            class:list={[
+              'shard-row',
+              { 'is-loaded': s.loaded },
+              { 'is-empty': s.loaded && s.remaining === 0 },
+            ]}
+            data-shard={s.name}
+          >
+            <span class="shard-name mono">{s.name}</span>
+            <span class="shard-count mono" data-shard-count>{s.remaining} / {s.total}</span>
+            <span class="shard-state mono" data-shard-state>
+              {!s.loaded ? 'pendiente' : s.remaining === 0 ? 'liberado' : 'en RAM'}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="splitter-col">
+      <h4 class="col-title mono">chiquito_split/</h4>
+      <ul class="output-list" data-output-list>
+        {initialSnapshot.outputs.map((o) => (
+          <li class={`output-row is-${o.state}`} data-output-layer={o.layer}>
+            <span class="output-name mono">{o.layer}.safetensors</span>
+            <span class="output-marker mono" data-output-marker>
+              {o.state === 'done' ? '.done' : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  {title && <figcaption>{title}</figcaption>}
+</figure>
+
+<style>
+  .splitter {
+    margin-block: 2rem;
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .splitter-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .splitter-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 64px;
+  }
+  .label-muted {
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .step-counter {
+    font-size: 0.95rem;
+    color: var(--color-foreground);
+  }
+  .splitter-slider {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .splitter-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    color: var(--color-muted-foreground);
+    min-height: 3em;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  .splitter-description-icon {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--color-accent);
+  }
+
+  .splitter-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    .splitter-body { grid-template-columns: 1fr; }
+  }
+
+  .splitter-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .col-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin: 0;
+  }
+
+  .shard-list,
+  .output-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  /* Shards */
+  .shard-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background: var(--color-muted);
+    font-size: 0.75rem;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .shard-row.is-loaded {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-muted));
+  }
+  .shard-row.is-empty {
+    opacity: 0.5;
+  }
+  .shard-name {
+    color: var(--color-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shard-count {
+    color: var(--color-muted-foreground);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .shard-state {
+    color: var(--color-muted-foreground);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .shard-row.is-loaded .shard-state { color: var(--color-accent); }
+  .shard-row.is-empty .shard-state { color: var(--color-muted-foreground); }
+
+  /* Outputs */
+  .output-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    background: transparent;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      color var(--dur) var(--ease);
+  }
+  .output-row.is-file,
+  .output-row.is-done {
+    border-style: solid;
+    border-color: var(--color-border);
+    background: var(--color-muted);
+    color: var(--color-foreground);
+  }
+  .output-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .output-marker {
+    flex: none;
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    min-width: 3ch;
+    text-align: center;
+    color: transparent;
+    border: 1px solid transparent;
+  }
+  .output-row.is-done .output-marker {
+    color: var(--color-foreground);
+    background: color-mix(in srgb, #22c55e 18%, transparent);
+    border-color: color-mix(in srgb, #22c55e 45%, transparent);
+  }
+
+  .splitter figcaption {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    text-align: center;
+  }
+</style>
+
+<script>
+  import {
+    buildSnapshot,
+    stepLabel,
+    type WeightMap,
+  } from './checkpoint-splitter-logic';
+
+  function setup(root: HTMLElement) {
+    let weightMap: WeightMap = {};
+    let layerNames: string[] = [];
+    try {
+      weightMap = JSON.parse(root.dataset.weightMap || '{}');
+      layerNames = JSON.parse(root.dataset.layerNames || '[]');
+    } catch {
+      return;
+    }
+
+    const slider = root.querySelector<HTMLInputElement>('[data-step-slider]');
+    const counter = root.querySelector<HTMLElement>('[data-step-counter]');
+    const desc = root.querySelector<HTMLElement>('[data-step-description]');
+    const shardList = root.querySelector<HTMLElement>('[data-shard-list]');
+    const outputList = root.querySelector<HTMLElement>('[data-output-list]');
+    if (!slider || !counter || !desc || !shardList || !outputList) return;
+
+    function update(step: number) {
+      const snap = buildSnapshot(weightMap, layerNames, step);
+      const labels = stepLabel(layerNames, step);
+      counter!.textContent = labels.short;
+      desc!.textContent = labels.long;
+
+      for (const shard of snap.shards) {
+        const row = shardList!.querySelector<HTMLElement>(
+          `[data-shard="${CSS.escape(shard.name)}"]`,
+        );
+        if (!row) continue;
+        const countEl = row.querySelector<HTMLElement>('[data-shard-count]');
+        const stateEl = row.querySelector<HTMLElement>('[data-shard-state]');
+        if (countEl) countEl.textContent = `${shard.remaining} / ${shard.total}`;
+        if (stateEl) {
+          stateEl.textContent = !shard.loaded
+            ? 'pendiente'
+            : shard.remaining === 0
+              ? 'liberado'
+              : 'en RAM';
+        }
+        row.classList.toggle('is-loaded', shard.loaded);
+        row.classList.toggle('is-empty', shard.loaded && shard.remaining === 0);
+      }
+
+      for (const out of snap.outputs) {
+        const row = outputList!.querySelector<HTMLElement>(
+          `[data-output-layer="${CSS.escape(out.layer)}"]`,
+        );
+        if (!row) continue;
+        row.classList.remove('is-pending', 'is-file', 'is-done');
+        row.classList.add(`is-${out.state}`);
+        const marker = row.querySelector<HTMLElement>('[data-output-marker]');
+        if (marker) marker.textContent = out.state === 'done' ? '.done' : '';
+      }
+    }
+
+    slider.addEventListener('input', () => {
+      const step = parseInt(slider.value, 10);
+      if (Number.isFinite(step)) update(step);
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-splitter]').forEach(setup);
+</script>
