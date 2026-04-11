@@ -6,7 +6,7 @@ interface Props {
   headingLevel?: 'h2' | 'h3';
   numbering?: 'asc' | 'desc';
   maxTags?: number;
-  showDraft?: boolean;
+  showDrafts?: boolean;
 }
 
 const {
@@ -14,7 +14,7 @@ const {
   headingLevel = 'h2',
   numbering = 'desc',
   maxTags,
-  showDraft = false,
+  showDrafts = false,
 } = Astro.props;
 
 const TitleTag = headingLevel;
@@ -22,12 +22,14 @@ const TitleTag = headingLevel;
 const fmt = (d: Date) =>
   d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 
+const filtered = articulos.filter((articulo) => ! articulo.data.draft || showDrafts);
+
 const indexFor = (i: number) =>
   numbering === 'desc' ? articulos.length - i : i + 1;
 ---
 
 <ul class="articles-list">
-  {articulos.map((a, i) => {
+  {filtered.map((a, i) => {
     const tags = maxTags !== undefined ? a.data.tags.slice(0, maxTags) : a.data.tags;
     return (
       <li class="article-row">
@@ -38,7 +40,7 @@ const indexFor = (i: number) =>
             <p class="article-desc">{a.data.description}</p>
             <div class="article-meta">
               <span class="mono">{fmt(a.data.pubDate)}</span>
-              {showDraft && a.data.draft && <span class="badge">Borrador</span>}
+              {showDrafts && a.data.draft && <span class="badge">Borrador</span>}
               {tags.map(t => <span class="tag">{t}</span>)}
             </div>
           </div>
