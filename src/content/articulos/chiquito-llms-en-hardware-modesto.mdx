@@ -143,7 +143,7 @@ Este mapa de pesos es lo que hace posible la carga selectiva: podemos saber en q
 
 ### Descarga desde el Hub
 
-HuggingFace proporciona `snapshot_download()` para descargar los archivos de un modelo a una caché local:
+HuggingFace proporciona un método<Note label="Descarga desde HuggingFace">La API de HuggingFace implementa el método [`snapshot_download`](https://huggingface.co/docs/huggingface_hub/guides/download#download-an-entire-repository) que permite descargar un repositorio completo para una revisión dada.</Note> para descargar los archivos de un modelo a una caché local:
 
 ```python
 import huggingface_hub
@@ -155,6 +155,6 @@ cache_path = huggingface_hub.snapshot_download(
 )
 ```
 
-Las llamadas posteriores con el mismo identificador devuelven la ruta cacheada sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de recurrir a `snapshot_download()`.</Note>
+La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en que fueron guardados. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Resolución de la ruta del modelo">Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de recurrir a `snapshot_download()`.</Note>
 
 Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.
