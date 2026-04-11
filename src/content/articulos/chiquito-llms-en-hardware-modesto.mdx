@@ -15,6 +15,7 @@ import TokenizerEmulator from '../../components/chiquito/TokenizerEmulator.astro
 import CheckpointSplitter from '../../components/chiquito/CheckpointSplitter.astro';
 import ForwardPassTimeline from '../../components/chiquito/ForwardPassTimeline.astro';
 import AttentionMaskVisualizer from '../../components/chiquito/AttentionMaskVisualizer.astro';
+import SlidingWindowCache from '../../components/chiquito/SlidingWindowCache.astro';
 
 Al tratar de estudiar cómo funciona un modelo grande de lenguaje por dentro, la primera frustración aparece en cuanto descubres que ni siquiera puedes cargarlo. En condiciones normales, un modelo de 32B parámetros<Note label="Aclaración sobre 32B"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup> que equivale a <strong>32&nbsp;mil millones</strong> de parámetros.<br/><br/>Eso es mil veces menos que 32 billones en el sentido español del término.</Note> en precisión completa ocupa decenas de gigas de VRAM, siendo inaccesibles para la mayor parte de GPUs domésticas.
 
@@ -328,3 +329,7 @@ Es una limpieza a fondo que, entre otras cosas, fuerza al recolector de basura d
 Queda un último detalle que no es exactamente una limpieza pero forma parte del mismo sistema. Cuando un tensor viaja de RAM a la GPU, CUDA exige que esté en una región de RAM que el sistema operativo no pueda mandar al disco: lo que se conoce como *memoria clavada*. Si la memoria no está clavada, CUDA la copia primero a una zona temporal clavada y sólo después al destino.<Note label="Memoria clavada y DMA">La memoria "clavada" (o *page-locked*) está fijada en una página física de RAM que el kernel no puede mover ni enviar al fichero de swap. Eso permite al controlador de la GPU transferirla por [DMA sobre PCIe](https://en.wikipedia.org/wiki/Direct_memory_access) directamente al destino, sin copia intermedia. Para tensores grandes, la diferencia de velocidad se mueve entre 2× y 5×.</Note>
 
 Chiquito aprovecha esto cuando precarga los pesos en RAM: cada tensor que baja a su caché local se marca como clavado.<Note label="Dónde se clava">Al inicializar el modelo, se [precargan todas las capas](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) a la RAM clavada.</Note> Así que cuando llega el turno de esa capa su traspaso a VRAM salta directamente vía DMA sin copia intermedia. Eso hace que el modo de precarga no sólo ahorre lecturas de disco sino que además mueva los pesos a la GPU de forma notablemente más rápida.
+
+## Precarga RAM con ventana deslizante
+
+<SlidingWindowCache />

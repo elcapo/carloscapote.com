@@ -1,0 +1,608 @@
+---
+/**
+ * Simulador interactivo de la caché de ventana deslizante de Chiquito.
+ *
+ * Muestra, sobre un modelo de juguete con `numLayers` capas, cómo una
+ * ventana de `windowSize` ranuras se desplaza por el forward pass: el hilo
+ * productor carga capas por adelantado en RAM y el consumidor las ejecuta
+ * una a una, liberando el hueco para la siguiente. El slider de ventana
+ * deja comparar los extremos (N=1 ≈ disk-only, N=M ≈ full preload).
+ */
+import {
+  deriveLayers,
+  buildSnapshot,
+  totalSteps,
+  stepLabel,
+  layerStateLabel,
+} from './sliding-window-cache-logic';
+
+interface Props {
+  /** Nº de capas del modelo juguete. Default: 8. */
+  numLayers?: number;
+  /** Tamaño inicial de la ventana. Default: 3. */
+  windowSize?: number;
+  /** Pie de figura opcional. */
+  title?: string;
+}
+
+const { numLayers = 8, windowSize = 3, title } = Astro.props;
+const layers = deriveLayers(numLayers);
+const initialWindow = Math.max(1, Math.min(numLayers, windowSize));
+const maxStep = totalSteps(numLayers, initialWindow);
+const initialSnapshot = buildSnapshot(numLayers, initialWindow, 0);
+const initialLabel = stepLabel(numLayers, initialWindow, 0);
+---
+
+<figure
+  class="window-cache"
+  data-window-cache
+  data-layers={JSON.stringify(layers)}
+  data-num-layers={numLayers}
+  data-initial-window={initialWindow}
+>
+  <header class="wc-header">
+    <div class="wc-step">
+      <span class="label-muted mono">paso</span>
+      <span class="step-counter mono" data-step-counter>{initialLabel.short}</span>
+    </div>
+    <input
+      type="range"
+      class="wc-slider"
+      data-step-slider
+      min="0"
+      max={maxStep}
+      step="1"
+      value="0"
+      aria-label="Progreso del forward pass"
+    />
+  </header>
+
+  <p class="wc-description mono">
+    <svg
+      class="wc-description-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
+      <path d="M8 7.25 V12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+    <span data-step-description>{initialLabel.long}</span>
+  </p>
+
+  <div class="wc-body">
+    <div class="wc-col">
+      <h4 class="col-title mono">Capas del modelo</h4>
+      <ul class="layer-list" data-layer-list>
+        {initialSnapshot.layers.map((l) => (
+          <li
+            class={`layer-row is-${l.state}`}
+            data-layer-index={l.index}
+          >
+            <span class="layer-name mono">{l.name}</span>
+            <span class="layer-state mono" data-layer-state>
+              {layerStateLabel(l.state)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="wc-col">
+      <h4 class="col-title mono">RAM (ventana)</h4>
+      <div class="cache-slots" data-cache-slots>
+        {Array.from({ length: initialWindow }, (_, i) => (
+          <div class="cache-slot" data-cache-slot={i}>
+            <span class="cache-empty mono">(vacía)</span>
+          </div>
+        ))}
+      </div>
+      <div class="producer-row">
+        <div class="wc-label mono">Hilo productor</div>
+        <div class="producer-chip mono is-idle" data-producer-chip>
+          <span data-producer-text>ocioso</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="window-control">
+    <div class="window-control-label">
+      <span class="wc-label mono">Tamaño de la ventana</span>
+      <span class="window-counter mono" data-window-counter>
+        {initialWindow} / {numLayers}
+      </span>
+    </div>
+    <div class="window-buttons">
+      <button
+        type="button"
+        class="window-button mono"
+        data-window-dec
+        disabled={initialWindow <= 1}
+      >
+        − Reducir
+      </button>
+      <button
+        type="button"
+        class="window-button mono"
+        data-window-inc
+        disabled={initialWindow >= numLayers}
+      >
+        + Incrementar
+      </button>
+    </div>
+  </div>
+
+  {title && <figcaption>{title}</figcaption>}
+</figure>
+
+<style>
+  .window-cache {
+    margin-block: 2rem;
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .wc-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .wc-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 64px;
+  }
+  .label-muted {
+    font-size: 0.65rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .step-counter {
+    font-size: 0.95rem;
+    color: var(--color-foreground);
+  }
+  .wc-slider {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .wc-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    color: var(--color-muted-foreground);
+    min-height: 3em;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  .wc-description-icon {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--color-accent);
+  }
+
+  .wc-body {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    .wc-body { grid-template-columns: 1fr; }
+  }
+
+  .wc-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .col-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin: 0;
+  }
+
+  /* Lista de capas */
+  .layer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+  .layer-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background: var(--color-muted);
+    font-size: 0.75rem;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .layer-row.is-idle {
+    background: transparent;
+    border-style: dashed;
+  }
+  .layer-row.is-loading {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-muted));
+  }
+  .layer-row.is-cached {
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-muted));
+  }
+  .layer-row.is-running {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 18%, var(--color-muted));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+  .layer-row.is-freed {
+    opacity: 0.45;
+  }
+  .layer-name {
+    color: var(--color-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .layer-row.is-idle .layer-name {
+    color: var(--color-muted-foreground);
+  }
+  .layer-state {
+    color: var(--color-muted-foreground);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .layer-row.is-loading .layer-state,
+  .layer-row.is-cached .layer-state,
+  .layer-row.is-running .layer-state {
+    color: var(--color-accent);
+  }
+
+  /* Ranuras de la ventana.
+     Las ranuras y sus hijos se reconstruyen con `document.createElement` cuando
+     el slider de ventana cambia; usamos `:global` para que los estilos se
+     apliquen a los elementos creados dinámicamente (idéntico patrón al panel
+     VRAM de ForwardPassTimeline). El contenedor `.cache-slots` sí se renderiza
+     en SSR y conserva el identificador scoped. */
+  .cache-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+  }
+  .cache-slots :global(.cache-slot) {
+    display: flex;
+    align-items: center;
+    padding: 0.45rem 0.65rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 0.375rem;
+    font-size: 0.72rem;
+    min-height: 1.85rem;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease);
+  }
+  .cache-slots :global(.cache-slot.is-filled) {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-muted));
+  }
+  .cache-slots :global(.cache-slot.is-loading) {
+    border-style: solid;
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-muted));
+  }
+  .cache-slots :global(.cache-slot.is-running) {
+    border-style: solid;
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 18%, var(--color-muted));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+  .cache-slots :global(.cache-empty) {
+    font-family: var(--font-mono);
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+  .cache-slots :global(.cache-name) {
+    font-family: var(--font-mono);
+    color: var(--color-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .producer-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .wc-label {
+    font-size: 0.6rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .producer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    font-size: 0.72rem;
+    color: var(--color-muted-foreground);
+    align-self: flex-start;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .producer-chip.is-loading {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  }
+  .producer-chip.is-waiting {
+    border-style: dashed;
+  }
+  .producer-chip.is-done {
+    opacity: 0.55;
+  }
+
+  /* Control del tamaño de la ventana al final del widget */
+  .window-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    margin-top: 1.25rem;
+  }
+  .window-control-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .window-counter {
+    font-size: 0.95rem;
+    color: var(--color-foreground);
+  }
+  .window-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+  .window-button {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--color-foreground);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition:
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .window-button:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  }
+  .window-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .window-cache figcaption {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    text-align: center;
+  }
+</style>
+
+<script>
+  import {
+    buildSnapshot,
+    stepLabel,
+    totalSteps,
+    layerStateLabel,
+    type Layer,
+  } from './sliding-window-cache-logic';
+
+  function setup(root: HTMLElement) {
+    let layers: Layer[] = [];
+    try {
+      layers = JSON.parse(root.dataset.layers || '[]');
+    } catch {
+      return;
+    }
+    const M = parseInt(root.dataset.numLayers || '0', 10);
+    if (!Number.isFinite(M) || M <= 0) return;
+    const initialWindow = parseInt(root.dataset.initialWindow || '1', 10);
+    let currentWindow = Math.max(
+      1,
+      Math.min(M, Number.isFinite(initialWindow) ? initialWindow : 1),
+    );
+
+    const stepSlider = root.querySelector<HTMLInputElement>('[data-step-slider]');
+    const windowCounter = root.querySelector<HTMLElement>('[data-window-counter]');
+    const stepCounter = root.querySelector<HTMLElement>('[data-step-counter]');
+    const desc = root.querySelector<HTMLElement>('[data-step-description]');
+    const layerList = root.querySelector<HTMLElement>('[data-layer-list]');
+    const cacheSlotsEl = root.querySelector<HTMLElement>('[data-cache-slots]');
+    const producerChip = root.querySelector<HTMLElement>('[data-producer-chip]');
+    const producerText = root.querySelector<HTMLElement>('[data-producer-text]');
+    const decBtn = root.querySelector<HTMLButtonElement>('[data-window-dec]');
+    const incBtn = root.querySelector<HTMLButtonElement>('[data-window-inc]');
+    if (
+      !stepSlider ||
+      !windowCounter ||
+      !stepCounter ||
+      !desc ||
+      !layerList ||
+      !cacheSlotsEl ||
+      !producerChip ||
+      !producerText ||
+      !decBtn ||
+      !incBtn
+    )
+      return;
+
+    function rebuildCacheSlots(N: number) {
+      cacheSlotsEl!.innerHTML = '';
+      for (let i = 0; i < N; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'cache-slot';
+        slot.dataset.cacheSlot = String(i);
+        const empty = document.createElement('span');
+        empty.className = 'cache-empty mono';
+        empty.textContent = '(vacía)';
+        slot.appendChild(empty);
+        cacheSlotsEl!.appendChild(slot);
+      }
+    }
+
+    function update(step: number, N: number) {
+      const snap = buildSnapshot(M, N, step);
+      const labels = stepLabel(M, N, step);
+      stepCounter!.textContent = labels.short;
+      desc!.textContent = labels.long;
+
+      for (const l of snap.layers) {
+        const row = layerList!.querySelector<HTMLElement>(
+          `[data-layer-index="${l.index}"]`,
+        );
+        if (!row) continue;
+        row.classList.remove(
+          'is-idle',
+          'is-loading',
+          'is-cached',
+          'is-running',
+          'is-freed',
+        );
+        row.classList.add(`is-${l.state}`);
+        const stateEl = row.querySelector<HTMLElement>('[data-layer-state]');
+        if (stateEl) stateEl.textContent = layerStateLabel(l.state);
+      }
+
+      const slots = cacheSlotsEl!.querySelectorAll<HTMLElement>('[data-cache-slot]');
+      const loadingLayer =
+        snap.producer.kind === 'loading' ? snap.producer.layer : null;
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        slot.classList.remove('is-filled', 'is-loading', 'is-running');
+        slot.innerHTML = '';
+        const layerIdx = snap.cache[i];
+        if (layerIdx === undefined) {
+          const empty = document.createElement('span');
+          empty.className = 'cache-empty mono';
+          empty.textContent = '(vacía)';
+          slot.appendChild(empty);
+        } else {
+          slot.classList.add('is-filled');
+          if (layerIdx === snap.currentLayer && snap.substep === 'run') {
+            slot.classList.add('is-running');
+          } else if (layerIdx === loadingLayer) {
+            slot.classList.add('is-loading');
+          }
+          const name = document.createElement('span');
+          name.className = 'cache-name mono';
+          name.textContent = layers[layerIdx].name;
+          slot.appendChild(name);
+        }
+      }
+
+      producerChip!.classList.remove(
+        'is-idle',
+        'is-loading',
+        'is-waiting',
+        'is-done',
+      );
+      producerChip!.classList.add(`is-${snap.producer.kind}`);
+      if (snap.producer.kind === 'loading') {
+        producerText!.textContent = `cargando ${layers[snap.producer.layer].name}`;
+      } else if (snap.producer.kind === 'waiting') {
+        producerText!.textContent = 'a la espera del siguiente release';
+      } else if (snap.producer.kind === 'done') {
+        producerText!.textContent = 'completado';
+      } else {
+        producerText!.textContent = 'ocioso';
+      }
+    }
+
+    function applyWindow(newN: number) {
+      const N = Math.max(1, Math.min(M, newN));
+      if (N === currentWindow) return;
+      currentWindow = N;
+      const newMax = totalSteps(M, N);
+      stepSlider!.max = String(newMax);
+      let step = parseInt(stepSlider!.value, 10);
+      if (!Number.isFinite(step)) step = 0;
+      if (step > newMax) {
+        step = newMax;
+        stepSlider!.value = String(step);
+      }
+      windowCounter!.textContent = `${N} / ${M}`;
+      decBtn!.disabled = N <= 1;
+      incBtn!.disabled = N >= M;
+      rebuildCacheSlots(N);
+      update(step, N);
+    }
+
+    decBtn.addEventListener('click', () => applyWindow(currentWindow - 1));
+    incBtn.addEventListener('click', () => applyWindow(currentWindow + 1));
+
+    stepSlider.addEventListener('input', () => {
+      const step = parseInt(stepSlider.value, 10);
+      if (Number.isFinite(step)) update(step, currentWindow);
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-window-cache]')
+    .forEach(setup);
+</script>
