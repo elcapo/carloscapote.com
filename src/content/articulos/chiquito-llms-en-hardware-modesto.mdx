@@ -120,7 +120,7 @@ Esta operación es ligera: descarga el correspondiente archivo `config.json` del
 
 Los modelos no trabajan con texto sino con secuencias de números enteros. **El tokenizador es el componente que convierte texto en identificadores numéricos** y viceversa.
 
-<TokenizerEmulator defaultText="No tengas miedo a probar cosas" showEmbeddings={false} />
+<TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={false} />
 
  Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Carga del tokenizador">Al iniciarse, Chiquito [carga el tokenizador]((https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152)) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas.
 
@@ -170,17 +170,27 @@ flowchart LR
     E --> F(Cabeza)
 ```
 
-### Los cuatro bloques
+### Embeddings
 
 El primero es el **embedding**, una tabla de búsqueda que convierte los identificadores enteros que produce el tokenizador en vectores densos. Si el vocabulario tiene 32.000 tokens y la dimensión oculta es 2.048, el embedding es una matriz de forma `(32000, 2048)`. Recibe un tensor `(batch, seq_len)` y devuelve un tensor `(batch, seq_len, hidden_dim)`.
 
-A continuación vienen las **capas transformer**, que son el núcleo del modelo. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de auto-atención y una red feed-forward, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras. Lo relevante es que **son el bloque que se repite N veces y concentra la mayor parte de los parámetros del modelo**: un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
+<TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={true} />
 
-Después de la última capa viene la **normalización final** (habitualmente RMSNorm), que estabiliza los estados ocultos antes de la proyección final sin cambiar sus dimensiones.
+### Transformers
 
-Y por último, el **LM head**, una proyección lineal que lleva los estados ocultos desde la dimensión oculta hasta el tamaño del vocabulario. Su salida es un vector de **logits** con una puntuación por cada token del vocabulario. El token con la puntuación más alta es, a grandes rasgos, la predicción del modelo para la siguiente posición.
+A continuación viene el núcleo del modelo: las **capas transformer**. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de auto atención y una red prealimentada, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras.
 
-### La convención de nombres
+Lo relevante es que **son el bloque que se repite *N* veces y concentra la mayor parte de los parámetros del modelo**: un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
+
+### Normalización
+
+Después de la última capa viene la **normalización final**, que estabiliza los estados ocultos antes de la proyección final sin cambiar sus dimensiones.
+
+### Capa de salida
+
+Y por último, una proyección lineal lleva los estados ocultos desde la dimensión oculta hasta el tamaño del vocabulario. Su salida es un vector de **logits** con una puntuación por cada token del vocabulario. El token con la puntuación más alta es, a grandes rasgos, la predicción del modelo para la siguiente posición.
+
+## La convención de nombres
 
 Los modelos de HuggingFace siguen un esquema de nombres consistente. Para los modelos tipo Llama —que incluyen Llama, Mistral, Qwen2 y muchos otros— los nombres son:
 
@@ -191,7 +201,7 @@ Los modelos de HuggingFace siguen un esquema de nombres consistente. Para los mo
 | Normalización final | `model.norm` |
 | LM head | `lm_head` |
 
-Estos nombres son los que aparecen como prefijos en el `state_dict` del modelo. Por ejemplo, `model.layers.5.self_attn.q_proj.weight` es la matriz de proyección de las queries en la capa transformer número 5. Chiquito los guarda como una variable de clase<Note label="Nombres de bloques">Chiquito define los nombres como [una variable de clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L99-L104) para poder adaptarlos fácilmente a arquitecturas que usan otra convención, como ChatGLM, que llama a sus capas `transformer.encoder.layers`.</Note> para poder adaptarse a arquitecturas que usen otros nombres.
+Estos nombres son los que aparecen como prefijos en el mapa de pesos del modelo. Chiquito los guarda como una variable de clase<Note label="Nombres de bloques">Chiquito define los nombres como [una variable de clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L99-L104) para poder adaptarlos fácilmente a arquitecturas que usan otra convención.</Note> para poder adaptarse a arquitecturas que usen otros nombres.
 
 ### Recorrer el árbol de módulos
 
@@ -203,7 +213,7 @@ for attr in "model.layers".split("."):
     module = getattr(module, attr)
 ```
 
-Chiquito usa este mecanismo para construir, al arrancar, una lista ordenada con todos los bloques del modelo.<Note label="Construcción de la lista de capas">El método [`_build_layers()`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292) recorre el árbol del modelo para cada uno de los cuatro tipos de bloque y guarda referencias a los módulos junto con sus nombres.</Note> El resultado es una secuencia del tipo `[embed, layer.0, layer.1, ..., norm, lm_head]` que el bucle de inferencia recorre de principio a fin, cargando los pesos de cada bloque justo antes de ejecutarlo y liberándolos después.
+Chiquito usa este mecanismo para construir, al arrancar, una lista ordenada con todos los bloques del modelo.<Note label="Construcción de la lista de capas">El método [`_build_layers()`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292) recorre el árbol del modelo para cada uno de los cuatro tipos de bloque y guarda referencias a los módulos junto con sus nombres.</Note> El resultado es una secuencia que el bucle de inferencia recorre de principio a fin, cargando los pesos de cada bloque justo antes de ejecutarlo y liberándolos después.
 
 ### Las Rotary Position Embeddings
 

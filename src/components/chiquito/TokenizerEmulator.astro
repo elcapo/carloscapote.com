@@ -29,19 +29,19 @@ const initialTokens = tokenize(defaultText).map((tok, i) => {
 });
 ---
 
-<div class="tokenizer-emu">
+<div class="tokenizer-emu" data-tokenizer-emu>
   <p class="section-label">Texto de entrada</p>
-  <input type="text" id="tok-input" value={defaultText} spellcheck="false" />
+  <input type="text" data-tok-input value={defaultText} spellcheck="false" />
 
   <p class="section-label">Tokens</p>
-  <div class="token-strip" id="tok-strip">
+  <div class="token-strip" data-tok-strip>
     {initialTokens.map(({ label, hue }) => (
       <span class="token-chip no-anim" data-hue={hue}>{label}</span>
     ))}
   </div>
 
   <p class="section-label">IDs de token</p>
-  <div class="token-ids" id="tok-ids">
+  <div class="token-ids" data-tok-ids>
     {initialTokens.map(({ id, hue }) => (
       <span class="token-id no-anim" data-hue={hue}>{id}</span>
     ))}
@@ -50,7 +50,7 @@ const initialTokens = tokenize(defaultText).map((tok, i) => {
   {showEmbeddings && (
     <>
       <p class="section-label">Embeddings <span class="dim-hint">(8 dimensiones)</span></p>
-      <div class="embedding-grid" id="tok-embeddings">
+      <div class="embedding-grid" data-tok-embeddings>
         {initialTokens.map(({ label, emb }) => (
           <div class="emb-row no-anim">
             <span class="emb-label">{label}</span>
@@ -267,11 +267,14 @@ const initialTokens = tokenize(defaultText).map((tok, i) => {
     displayToken,
   } from './tokenizer-logic';
 
-  (function () {
-    const inputEl = document.getElementById('tok-input') as HTMLInputElement | null;
-    const stripEl = document.getElementById('tok-strip');
-    const idsEl = document.getElementById('tok-ids');
-    const embEl = document.getElementById('tok-embeddings');
+  // Los `<script>` de Astro se ejecutan una única vez por página, no por
+  // componente, así que iteramos todas las instancias presentes en el DOM
+  // y cerramos sobre las referencias propias de cada una.
+  function setup(root: HTMLElement) {
+    const inputEl = root.querySelector<HTMLInputElement>('[data-tok-input]');
+    const stripEl = root.querySelector<HTMLElement>('[data-tok-strip]');
+    const idsEl = root.querySelector<HTMLElement>('[data-tok-ids]');
+    const embEl = root.querySelector<HTMLElement>('[data-tok-embeddings]');
     if (!inputEl || !stripEl || !idsEl) return;
 
     // El HTML inicial ya viene pintado desde el server: sembramos `prevTokens`
@@ -365,5 +368,7 @@ const initialTokens = tokenize(defaultText).map((tok, i) => {
       clearTimeout(timer);
       timer = setTimeout(render, 150);
     });
-  })();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-tokenizer-emu]').forEach(setup);
 </script>
