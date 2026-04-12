@@ -21,7 +21,7 @@ Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo p
 
 <Chart
     title="Memoria (fp16) frente a parámetros del modelo"
-    xLabel="Miles de millónes de parámetros"
+    xLabel="Miles de millones de parámetros"
     yLabel="Memoria (GB)"
     xScale="linear"
     yScale="linear"
@@ -122,11 +122,11 @@ Esta operación es ligera: descarga el correspondiente archivo `config.json` del
 
 ### El tokenizador
 
-Los modelos no trabajan con texto sino con secuencias de números enteros. **El tokenizador es el componente que convierte texto en identificadores numéricos** y viceversa.
+Los modelos no trabajan con texto sino con secuencias de números enteros. **El tokenizador es el componente que convierte texto en identificadores numéricos** y viceversa. Puedes probarlo aquí: escribe una frase y observa cómo se descompone en tokens.
 
 <TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={false} />
 
- Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador]((https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152)) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas.
+Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas. Una vez convertido el texto en identificadores, el modelo necesita los pesos para procesarlos. Esos pesos viven en archivos safetensors.
 
 ### Los archivos safetensors
 
