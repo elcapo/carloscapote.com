@@ -321,7 +321,7 @@ Cuando borras un tensor de GPU, PyTorch no devuelve esa memoria a CUDA. Se la qu
 
 Hay una segunda rutina, bastante más cara, que Chiquito reserva para momentos puntuales: al iniciar el modelo, al terminar de partirlo por capas, al reinicializar modelos cuantizados. Nunca dentro del bucle de inferencia.<Note label="Contexto">La [limpieza profunda](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L10-L17) combina tres llamadas: una pasada del recolector de basura de Python, una llamada que devuelve al sistema operativo los trozos de heap libres y la limpieza de memoria CUDA.</Note>
 
-Es una limpieza a fondo que, entre otras cosas, fuerza al recolector de basura de Python a pasar, le pide al sistema que libere los trozos de memoria que Python ya no usa pero seguía reservados, y vacía la caché de CUDA.
+Es una limpieza a fondo que, entre otras cosas, fuerza al recolector de basura de Python a pasar, le pide al sistema que libere los trozos de memoria que Python ya no usa pero seguían reservados, y vacía la caché de CUDA.
 
 ### Memoria clavada para acelerar los traspasos
 
@@ -369,7 +369,7 @@ Esto se conoce como **patrón productor-consumidor**:
 
 Antes de arrancar el recorrido propiamente dicho, Chiquito precarga las *N* primeras capas de forma síncrona.<Note label="Contexto">Cuando [empieza la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L47-L58), se llena la ventana inicial antes de lanzar el hilo de fondo, garantizando que cuando se procese la primera capa los pesos ya estarán disponibles.</Note> Solo cuando la ventana está llena echa a andar el hilo productor y cede el control al bucle de inferencia.
 
-En ese momento comienza el baile: el consumidor ejecuta una capa y la libera, notificando al productor; el productor ocupa el hueco cargando la siguiente capa de la ventana mientras tanto el consumidor ya estaba pidiéndole la siguiente capa a consumir a la caché, y así sucesivamente.
+En ese momento comienza el baile: el consumidor ejecuta una capa y la libera, notificando al productor; el productor ocupa el hueco cargando la siguiente capa de la ventana; mientras tanto, el consumidor ya estaba pidiéndole a la caché la siguiente capa, y así sucesivamente.
 
 <SlidingWindowCache title="Ventana deslizante simulada sobre un modelo de 8 capas" />
 
