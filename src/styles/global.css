@@ -43,13 +43,13 @@
 :root {
   /* Light */
   --color-primary: #18181B;
-  --color-on-primary: #FFFFFF;
+  --color-on-primary: #F7EFE9;
   --color-secondary: #3F3F46;
   --color-accent: #AA2B95;
   --color-accent-hover: #CB5AB8;
-  --color-background: #FAFAFA;
+  --color-background: #F7EFE9;
   --color-foreground: #09090B;
-  --color-muted: #F1F3F5;
+  --color-muted: #EEDDCF;
   --color-muted-foreground: #52525B;
   --color-border: #E4E4E7;
   --color-destructive: #DC2626;
@@ -71,34 +71,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-primary: #FAFAFA;
-    --color-on-primary: #09090B;
-    --color-secondary: #A1A1AA;
+    --color-primary: #F7EFE9;
+    --color-on-primary: #333332;
+    --color-secondary: #BABABAB;
     --color-accent: #CB5AB8;
     --color-accent-hover: #E3AAD9;
-    --color-background: #09090B;
-    --color-foreground: #FAFAFA;
-    --color-muted: #18181B;
+    --color-background: #333332;
+    --color-foreground: #F7EFE9;
+    --color-muted: #222221;
     --color-muted-foreground: #A1A1AA;
     --color-border: #27272A;
     --color-destructive: #FA5F5F;
-    --color-ring: #FAFAFA;
+    --color-ring: #F7EFE9;
   }
 }
 
 :root[data-theme="dark"] {
-  --color-primary: #FAFAFA;
-  --color-on-primary: #09090B;
-  --color-secondary: #A1A1AA;
+  --color-primary: #F7EFE9;
+  --color-on-primary: #333332;
+  --color-secondary: #BABABAB;
   --color-accent: #CB5AB8;
   --color-accent-hover: #E3AAD9;
-  --color-background: #09090B;
-  --color-foreground: #FAFAFA;
-  --color-muted: #18181B;
+  --color-background: #333332;
+  --color-foreground: #F7EFE9;
+  --color-muted: #222221;
   --color-muted-foreground: #A1A1AA;
   --color-border: #27272A;
   --color-destructive: #FA5F5F;
-  --color-ring: #FAFAFA;
+  --color-ring: #F7EFE9;
 }
 
 /* Shiki dual-theme: light mode background */
