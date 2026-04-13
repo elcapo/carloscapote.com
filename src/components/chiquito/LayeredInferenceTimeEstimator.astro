@@ -2,7 +2,7 @@
 interface Props {
   /** Parámetros del modelo en billones (default: 32) */
   defaultParams?: number;
-  /** Número de capas (default: 64) */
+  /** Número de transformers (default: 64) */
   defaultLayers?: number;
   /** Bytes por parámetro: 4=fp32, 2=bf16, 1=int8, 0.5=int4 (default: 2) */
   defaultBpp?: number;
@@ -13,8 +13,8 @@ interface Props {
 }
 
 const {
-  defaultParams = 32,
-  defaultLayers = 64,
+  defaultParams = 122,
+  defaultLayers = 51,
   defaultBpp = 2,
   defaultTokens = 20,
   defaultPcieBW = 1,
@@ -47,7 +47,7 @@ const {
 
   <div class="slider-row">
     <label for="ic-layers">
-      Número de capas
+      Número de transformers
     </label>
     <input type="range" id="ic-layers" min="8" max="120" step="1" value={defaultLayers} />
     <span class="slider-val"><span id="ic-layers-out">{defaultLayers}</span></span>
