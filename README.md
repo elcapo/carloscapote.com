@@ -45,9 +45,9 @@ src/
 
 ```bash
 pnpm install
-pnpm run dev      # http://localhost:4321
-pnpm run build
-pnpm run preview
+pnpm dev      # http://localhost:4321
+pnpm build
+pnpm preview
 ```
 
 > La primera build puede tardar: `rehype-mermaid` descarga Chromium vía Playwright si no lo tiene, y `canvas` puede compilarse nativamente si no hay binario precompilado para la plataforma.

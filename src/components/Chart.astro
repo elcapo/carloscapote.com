@@ -177,10 +177,13 @@ const ssrSvg = renderChartSvg(config, height);
   }
 
   function themeColors() {
+    const muted = cssVar('--color-muted-foreground');
     return {
       fg: cssVar('--color-foreground'),
-      muted: cssVar('--color-muted-foreground'),
-      border: cssVar('--color-border'),
+      muted,
+      border: `color-mix(in srgb, ${muted} 0%, transparent)`,
+      // Grid más visible que el border: usa el muted-foreground con transparencia.
+      grid: `color-mix(in srgb, ${muted} 25%, transparent)`,
       accent: cssVar('--color-accent'),
       bg: cssVar('--color-background'),
     };
@@ -249,7 +252,7 @@ const ssrSvg = renderChartSvg(config, height);
               ? { display: true, text: cfg.xLabel, color: colors.muted }
               : { display: false },
             ticks: { color: colors.muted },
-            grid: { color: colors.border },
+            grid: { color: colors.grid },
             border: { color: colors.border },
             ...(cfg.xTicks && cfg.xTicks.length > 0
               ? {
@@ -267,7 +270,7 @@ const ssrSvg = renderChartSvg(config, height);
               ? { display: true, text: cfg.yLabel, color: colors.muted }
               : { display: false },
             ticks: { color: colors.muted },
-            grid: { color: colors.border },
+            grid: { color: colors.grid },
             border: { color: colors.border },
             ...(cfg.yTicks && cfg.yTicks.length > 0
               ? {
@@ -340,12 +343,21 @@ const ssrSvg = renderChartSvg(config, height);
   }
 
   // Re-tematizado al cambiar el esquema de color.
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', () => {
+  function rethemeAll() {
     document.querySelectorAll<HTMLCanvasElement>('canvas[data-chart]').forEach((c) => {
       const entry = instances.get(c);
       if (entry) retheme(entry.chart, entry.cfg);
     });
+  }
+
+  // Cambio vía media query del sistema.
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', rethemeAll);
+
+  // Cambio vía toggle manual (atributo data-theme en <html>).
+  new MutationObserver(rethemeAll).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
   });
 
   if (document.readyState === 'loading') {
