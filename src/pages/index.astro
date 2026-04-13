@@ -40,7 +40,7 @@ const articulos = (await getCollection('articulos'))
           Aprendizaje en público.
         </h2>
         <p>
-          Publicamos artículos en profundidad sobre software libre, pedagogía y cultura tecnológica sobre proyectos en los que estamos trabajando, o hemos trabajado recientemente.
+          Publicamos artículos en profundidad sobre software libre, pedagogía y cultura tecnológica, basados en proyectos en los que estamos trabajando, o hemos trabajado recientemente.
         </p>
       </div>
     </div>
@@ -61,7 +61,7 @@ const articulos = (await getCollection('articulos'))
         headingLevel="h3"
         numbering="asc"
         maxTags={3}
-        showDraft
+        showDrafts={false}
       />
 
       <div class="articles-footer">
