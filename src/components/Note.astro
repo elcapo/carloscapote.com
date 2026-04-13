@@ -1,31 +1,34 @@
 ---
 /**
- * Nota inline al estilo Oliver Wyman: un número clicable que despliega un
- * pequeño popup con una aclaración o la ficha de una cita.
+ * Nota inline al estilo Oliver Wyman: un numero clicable que despliega un
+ * pequeno popup con una aclaracion o la ficha de una cita.
  *
  * Uso (en archivos .mdx):
  *
  *   import Note from '../../components/Note.astro';
  *
  *   ...un modelo de "32B"<Note>
- *     **32B** sigue la convención anglosajona...
- *   </Note> parámetros...
+ *     **32B** sigue la convencion anglosajona...
+ *   </Note> parametros...
  *
- * El número se asigna automáticamente vía contadores CSS, así que no hace
- * falta pasarle ningún índice. El contador se reinicia en cada `.prose`.
+ * El numero se asigna automaticamente via contadores CSS, asi que no hace
+ * falta pasarle ningun indice. El contador se reinicia en cada `.prose`.
  *
  * Para citas con enlace puedes incluir Markdown dentro del slot, incluyendo
- * enlaces, énfasis, etc.
+ * enlaces, enfasis, etc.
+ *
+ * El posicionamiento del popup usa Floating UI (`@floating-ui/dom`), que se
+ * encarga de colocarlo debajo o encima del marcador segun el espacio
+ * disponible, y de posicionar la flecha correctamente en ambos casos.
  */
 
 interface Props {
-  /** Texto accesible del marcador y título visible del popup. Por defecto: "Nota". */
+  /** Texto accesible del marcador y titulo visible del popup. Por defecto: "Nota". */
   label?: string;
 }
 
 const { label = 'Nota' } = Astro.props;
 const popupId = `note-${crypto.randomUUID().slice(0, 8)}`;
-const anchorName = `--${popupId}`;
 ---
 
 <span class="note">
@@ -34,17 +37,15 @@ const anchorName = `--${popupId}`;
     type="button"
     aria-expanded="false"
     aria-controls={popupId}
-    aria-describedby={popupId}
     aria-label={label}
-    style={`anchor-name: ${anchorName};`}
   ></button>
   <span
     class="note-popup"
     id={popupId}
     role="group"
     aria-label={label}
-    style={`position-anchor: ${anchorName};`}
   >
+    <span class="note-arrow"></span>
     <span class="note-popup-title">{label}</span>
     <span class="note-popup-body"><slot /></span>
   </span>
@@ -101,9 +102,6 @@ const anchorName = `--${popupId}`;
 
   .note-popup {
     position: absolute;
-    top: calc(100% + 0.5rem);
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 50;
     display: none;
     width: max-content;
@@ -121,18 +119,27 @@ const anchorName = `--${popupId}`;
     white-space: normal;
     text-align: left;
   }
-  .note-popup::before {
-    content: '';
+
+  .note-arrow {
     position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
     width: 10px;
     height: 10px;
-    background: var(--color-background);
-    border-top: 1px solid var(--color-border);
-    border-left: 1px solid var(--color-border);
+    background: var(--color-muted);
+    border: 1px solid color-mix(in srgb,var(--color-accent) 30%,var(--color-border));
+    transform: rotate(45deg);
   }
+  /* Oculta los bordes que quedan dentro del popup. Floating UI coloca la
+     flecha y el script aplica data-placement en el popup para saber que
+     bordes recortar. */
+  .note-popup[data-placement^='bottom'] .note-arrow {
+    border-bottom: none;
+    border-right: none;
+  }
+  .note-popup[data-placement^='top'] .note-arrow {
+    border-top: none;
+    border-left: none;
+  }
+
   .note-popup-title {
     display: block;
     padding-bottom: 0.5rem;
@@ -160,50 +167,76 @@ const anchorName = `--${popupId}`;
   .note[data-open] .note-popup {
     display: block;
   }
-
-  /*
-   * Mejora progresiva con CSS Anchor Positioning. En navegadores que la
-   * soportan (Chrome/Edge 125+), el popup se ancla al marcador con
-   * `position: fixed`, lo que permite que se reposicione automáticamente al
-   * hacer scroll y, sobre todo, que `position-try-fallbacks` lo voltee
-   * arriba si no cabe abajo del viewport.
-   */
-  @supports (anchor-name: --x) {
-    .note-popup {
-      position: fixed;
-      inset: auto;
-      top: anchor(bottom);
-      left: anchor(center);
-      transform: none;
-      translate: -50% 0.5rem;
-      position-try-fallbacks: --note-flip-up;
-    }
-    .note-popup::before {
-      /* Cuando el popup está debajo del marcador, la flecha mira arriba. */
-      top: -6px;
-      bottom: auto;
-      border-top: 1px solid var(--color-border);
-      border-left: 1px solid var(--color-border);
-      border-right: none;
-      border-bottom: none;
-    }
-  }
-
-  @position-try --note-flip-up {
-    top: auto;
-    bottom: anchor(top);
-    left: anchor(center);
-    translate: -50% -0.5rem;
-  }
 </style>
 
 <script>
+  import { computePosition, flip, offset, shift, arrow } from '@floating-ui/dom';
+
+  /** Posiciona el popup y la flecha con Floating UI. */
+  async function updatePosition(note: Element) {
+    const marker = note.querySelector<HTMLElement>('.note-marker');
+    const popup = note.querySelector<HTMLElement>('.note-popup');
+    const arrowEl = note.querySelector<HTMLElement>('.note-arrow');
+    if (!marker || !popup || !arrowEl) return;
+
+    const { x, y, placement, middlewareData } = await computePosition(marker, popup, {
+      placement: 'bottom',
+      middleware: [
+        offset(8),
+        flip({ padding: 8 }),
+        shift({ padding: 8 }),
+        arrow({ element: arrowEl, padding: 8 }),
+      ],
+    });
+
+    Object.assign(popup.style, { left: `${x}px`, top: `${y}px` });
+    popup.setAttribute('data-placement', placement);
+
+    if (middlewareData.arrow) {
+      const { x: ax, y: ay } = middlewareData.arrow;
+      const side = placement.split('-')[0] as 'top' | 'bottom';
+      const staticSide = side === 'top' ? 'bottom' : 'top';
+      Object.assign(arrowEl.style, {
+        left: ax != null ? `${ax}px` : '',
+        top: ay != null ? `${ay}px` : '',
+        [staticSide]: '-5px',
+        [side]: '',
+      });
+    }
+  }
+
+  // --- Estado global de cleanup para scroll/resize ---
+  let posCleanup: (() => void) | null = null;
+
   function closeAllNotes() {
+    posCleanup?.();
     document.querySelectorAll('.note[data-open]').forEach((n) => {
       n.removeAttribute('data-open');
+      const popup = n.querySelector<HTMLElement>('.note-popup');
+      if (popup) popup.removeAttribute('data-placement');
       const m = n.querySelector('.note-marker');
       if (m) m.setAttribute('aria-expanded', 'false');
     });
+  }
+
+  function openNote(note: Element, marker: Element) {
+    note.setAttribute('data-open', '');
+    marker.setAttribute('aria-expanded', 'true');
+
+    // Posiciona inmediatamente y re-posiciona en scroll/resize.
+    updatePosition(note);
+
+    function onUpdate() {
+      if (note.hasAttribute('data-open')) updatePosition(note);
+    }
+    window.addEventListener('scroll', onUpdate, true);
+    window.addEventListener('resize', onUpdate);
+
+    posCleanup = () => {
+      window.removeEventListener('scroll', onUpdate, true);
+      window.removeEventListener('resize', onUpdate);
+      posCleanup = null;
+    };
   }
 
   document.addEventListener('click', (e) => {
@@ -215,10 +248,7 @@ const anchorName = `--${popupId}`;
       if (!note) return;
       const wasOpen = note.hasAttribute('data-open');
       closeAllNotes();
-      if (!wasOpen) {
-        note.setAttribute('data-open', '');
-        marker.setAttribute('aria-expanded', 'true');
-      }
+      if (!wasOpen) openNote(note, marker);
       return;
     }
     if (!target.closest('.note-popup')) {
@@ -230,7 +260,6 @@ const anchorName = `--${popupId}`;
     if (e.key === 'Escape') {
       const open = document.querySelector('.note[data-open]');
       closeAllNotes();
-      // Devuelve el foco al marcador para no perder al usuario.
       if (open) {
         const marker = open.querySelector<HTMLButtonElement>('.note-marker');
         marker?.focus();
@@ -238,16 +267,11 @@ const anchorName = `--${popupId}`;
     }
   });
 
-  // Si el foco abandona tanto el marcador como el popup, cerrar.
   document.addEventListener('focusout', (e) => {
     const note = (e.target as HTMLElement).closest('.note[data-open]');
     if (!note) return;
-    // `relatedTarget` es el elemento que recibe el foco. Si está dentro
-    // de la misma nota, no cerramos.
     const next = e.relatedTarget as HTMLElement | null;
     if (next && note.contains(next)) return;
-    note.removeAttribute('data-open');
-    const marker = note.querySelector('.note-marker');
-    if (marker) marker.setAttribute('aria-expanded', 'false');
+    closeAllNotes();
   });
 </script>
