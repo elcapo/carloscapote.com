@@ -4,7 +4,7 @@ interface Props {
   defaultParams?: number;
   /** Número de transformers (default: 64) */
   defaultLayers?: number;
-  /** Bytes por parámetro: 4=fp32, 2=bf16, 1=int8, 0.5=int4 (default: 2) */
+  /** Bytes por parámetro: 4=fp32, 2=bf16, 1=int8, 0.5=int4 (default: 0.5) */
   defaultBpp?: number;
   /** Tokens a generar (default: 20) */
   defaultTokens?: number;
@@ -15,7 +15,7 @@ interface Props {
 const {
   defaultParams = 122,
   defaultLayers = 51,
-  defaultBpp = 2,
+  defaultBpp = 0.5,
   defaultTokens = 20,
   defaultPcieBW = 1,
 } = Astro.props;
@@ -64,10 +64,10 @@ const {
   <!-- Selector de cuantización -->
   <p class="section-label">Cuantización</p>
   <div class="speed-selector" id="ic-bpp-selector">
-    <button class="speed-btn" data-bpp="4">FP32 <span>(4 B/p)</span></button>
-    <button class="speed-btn active" data-bpp="2">BF16 / FP16 <span>(2 B/p)</span></button>
-    <button class="speed-btn" data-bpp="1">INT8 <span>(1 B/p)</span></button>
-    <button class="speed-btn" data-bpp="0.5">INT4 <span>(0,5 B/p)</span></button>
+    <button class={`speed-btn ${defaultBpp === 4 ? 'active' : ''}`} data-bpp="4">FP32 <span>(4 B/p)</span></button>
+    <button class={`speed-btn ${defaultBpp === 2 ? 'active' : ''}`} data-bpp="2">BF16 / FP16 <span>(2 B/p)</span></button>
+    <button class={`speed-btn ${defaultBpp === 1 ? 'active' : ''}`} data-bpp="1">INT8 <span>(1 B/p)</span></button>
+    <button class={`speed-btn ${defaultBpp === 0.5 ? 'active' : ''}`} data-bpp="0.5">INT4 <span>(0,5 B/p)</span></button>
   </div>
 
   <hr class="divider" />
