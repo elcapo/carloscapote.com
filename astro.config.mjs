@@ -3,7 +3,7 @@ import mdx from '@astrojs/mdx';
 import rehypeMermaid from 'rehype-mermaid';
 
 export default defineConfig({
-  site: 'https://carloscapote.com',
+  site: 'https://hawara.es',
   integrations: [mdx()],
   markdown: {
     syntaxHighlight: {

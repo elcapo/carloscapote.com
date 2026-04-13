@@ -7,11 +7,13 @@ FROM mcr.microsoft.com/playwright:v1.59.1-noble AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 # Runtime: nginx estático. Astro genera HTML + assets ya con las gráficas
 # (Chart.js prerender vía chartjs-node-canvas) y diagramas (Mermaid) embebidos,

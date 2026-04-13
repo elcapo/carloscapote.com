@@ -1,5 +1,5 @@
 {
-  "name": "carloscapote-com",
+  "name": "hawara-blog",
   "type": "module",
   "version": "0.0.1",
   "private": true,
@@ -9,6 +9,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["canvas"]
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.14",

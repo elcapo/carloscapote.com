@@ -1,6 +1,6 @@
-# carloscapote.com
+# Estudio Hawara
 
-Sitio personal de Carlos Capote: portfolio y casos de uso, construido con [Astro](https://astro.build).
+Sitio web de [Estudio Hawara](https://hawara.es): software y cultura libres, casos de uso y artículos pedagógicos en profundidad.
 
 ## Stack
 
@@ -44,10 +44,10 @@ src/
 ## Desarrollo
 
 ```bash
-npm install
-npm run dev      # http://localhost:4321
-npm run build
-npm run preview
+pnpm install
+pnpm run dev      # http://localhost:4321
+pnpm run build
+pnpm run preview
 ```
 
 > La primera build puede tardar: `rehype-mermaid` descarga Chromium vía Playwright si no lo tiene, y `canvas` puede compilarse nativamente si no hay binario precompilado para la plataforma.

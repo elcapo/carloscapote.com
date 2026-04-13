@@ -8,18 +8,18 @@ const articulos = (await getCollection('articulos'))
   .slice(0, 4);
 ---
 
-<Layout title="Carlos Capote — Programador y defensor del software libre">
+<Layout title="Estudio Hawara — Compartir es la tecnología más antigua">
 
   <!-- HERO -->
   <section class="hero">
     <canvas class="hero-bg" aria-hidden="true"></canvas>
     <div class="container">
-      <p class="eyebrow">Carlos Capote · Blog</p>
+      <p class="eyebrow">Presentación</p>
       <h1 class="hero-title display">
-        Programo<br />y comparto.
+        Compartir<br />es ciencia.
       </h1>
       <p class="hero-lede">
-        Soy programador y creo firmemente que si apostamos más por compartir que por competir crearemos un futuro mejor.
+        Exploramos el software y la cultura libres como base para una sociedad capaz de entender, reproducir y mejorar sus propias herramientas.
       </p>
       <div class="hero-actions">
         <a href="#proyectos" class="btn">Leer artículos →</a>
@@ -40,7 +40,7 @@ const articulos = (await getCollection('articulos'))
           Aprendizaje en público.
         </h2>
         <p>
-          Escribo sobre cosas que he construido, por qué las he construido, qué he aprendido y dónde encajan en una conversación más larga sobre tecnología, conocimiento y bien común.
+          Publicamos artículos en profundidad sobre software libre, pedagogía y cultura tecnológica sobre proyectos en los que estamos trabajando, o hemos trabajado recientemente.
         </p>
       </div>
     </div>
@@ -83,7 +83,7 @@ const articulos = (await getCollection('articulos'))
           Software libre,<br />cultura libre.
         </h2>
         <p>
-          Creo que el conocimiento técnico debería poder leerse, copiarse, modificarse y compartirse. Casi todo lo que publico aquí está bajo licencias libres, y muchos de los proyectos sobre los que escribo nacen precisamente para abrir cosas que estaban cerradas, ya sean datos públicos, modelos opacos o herramientas atadas a un proveedor.
+          Creemos que el conocimiento técnico debe poder leerse, copiarse, modificarse y compartirse. Estudiamos proyectos libres como herramienta para reducir nuestra dependencia de tecnologías opacas.
         </p>
       </div>
     </div>
@@ -172,7 +172,7 @@ const articulos = (await getCollection('articulos'))
 </style>
 
 <script>
-  // Hero ASCII background — random letters from "Carlos Capote" fall as 0/1
+  // Hero ASCII background — random letters from "software libre" fall as 0/1
   // glyph silhouettes (each cell is randomly '0' or '1') and stack tetris-style
   // until the pile reaches the top of the hero.
   type Cell = { dx: number; dy: number; char: '0' | '1' };
@@ -195,7 +195,7 @@ const articulos = (await getCollection('articulos'))
     color: string;     // baked rgba at spawn time
   };
 
-  const TEXT = 'Carlos Capote';
+  const TEXT = 'software libre';
   const LETTER_POOL = TEXT.replace(/\s/g, '').split('');
   const FONT_STACK = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
   const FALL_DURATION = 7000;     // ms per letter (≥ 7s)

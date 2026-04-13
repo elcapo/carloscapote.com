@@ -6,9 +6,9 @@ export async function GET(context) {
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
   return rss({
-    title: 'Carlos Capote',
+    title: 'Estudio Hawara',
     description:
-      'Casos de uso y ensayos sobre los proyectos en los que trabajo: software libre, modelos de lenguaje, datos abiertos y herramientas.',
+      'Compartir es la tecnología más antigua. Y la reproducibilidad, su forma más avanzada. Publicamos artículos en profundidad sobre software libre, pedagogía y cultura tecnológica.',
     site: context.site,
     items: articulos.map((a) => ({
       title: a.data.title,

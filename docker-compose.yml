@@ -1,8 +1,8 @@
 services:
   web:
     build: .
-    image: carloscapote-com:latest
-    container_name: carloscapote-com
+    image: hawara-blog:latest
+    container_name: hawara-blog
     restart: unless-stopped
     ports:
       - "8080:80"
