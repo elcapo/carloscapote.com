@@ -409,15 +409,66 @@ Esta tabla muestra lo que más impacta durante la inferencia: **la información 
 
 Esta tabla informa sobre lo que decide si una máquina concreta puede siquiera alojar el modelo entero en RAM: el mismo modelo pide 61 GB en fp16 —inviable en casi cualquier equipo doméstico— pero cabe en 15 GB cuando se cuantiza a 4 bits, que entra cómodamente en los 32 GB de muchos portátiles.
 
+## Mezcla de expertos
+
+Hasta aquí hemos dado por supuesto que todas las capas del modelo son iguales y que cada token pasa por ellas entero. Sin embargo, los modelos de "mezcla de expertos" (MoE) rompen esa simetría: dentro de cada capa, la red prealimentada se sustituye por muchas pequeñas redes de "expertos" y un enrutador ligero decide cuáles activar para cada token.<Note label="Definición">Un modelo como Qwen3.5-MoE tiene 128 expertos por capa pero en cada paso solo activa unos pocos. El resto permanece inactivo durante ese token.</Note>
+
+La consecuencia es que el modelo puede tener muchos más parámetros totales sin que aumente en la misma proporción el coste de cómputo por token. Pero para una ejecución capa por capa como la de Chiquito aparecen dos problemas nuevos que no tenían los modelos densos.
+
+### Tensores fusionados
+
+Para ahorrar espacio, **HuggingFace no guarda los pesos de los expertos por separado**: los fusiona en un único tensor tridimensional de forma `(num_experts, out_features, in_features)`. En Qwen3.5-MoE, con 128 expertos por capa, cada tensor fusionado ocupa cerca de 5 GB en fp16.
+
+Esto rompe los supuestos de la cuantización que vimos antes: la pieza que recibe `bitsandbytes` ya no es la matriz 2D de una capa lineal y, si se dequantiza entero, no cabe ni siquiera en GPUs generosas.
+
+### El problema de la nomenclatura
+
+La primera sorpresa aparece incluso antes de cuantizar. En los modelos MoE y en otros modelos compuestos, como los multimodales, **los pesos viven en disco bajo un prefijo distinto del que usa el objeto de PyTorch** en memoria: en el archivo cuelgan de `model.language_model.*` pero en el modelo que construye `accelerate` cuelgan directamente de `model.*`.
+
+Chiquito resuelve esto con una subclase, `ChiquitoCompositeModel`, que mantiene **dos tablas de nombres en paralelo**: una para el splitter, que trabaja con los nombres en disco; y otra para recorrer el árbol de módulos, que usa los nombres del objeto.<Note label="Contexto">La [subclase](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/composite_model.py#L27-L43) declara dos diccionarios con los prefijos en disco y en objeto respectivamente.</Note> Cada vez que se cargan pesos desde un archivo, las claves se traducen de una convención a la otra antes de moverse a GPU.<Note label="Contexto">El renombrado se hace [justo después de leer una capa](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/composite_model.py#L95-L106).</Note>
+
+### Dequantización "perezosa"
+
+El segundo problema —el tamaño del tensor fusionado— necesita algo más imaginativo. Si al cargar una capa MoE dequantizamos los 128 expertos a fp16, la VRAM estalla. Y lo irónico es que **en la mayoría de los pasos el enrutador solo activa un puñado de expertos**, así que todo lo demás estaría dequantizado para nada.
+
+La solución es dejar los datos empaquetados en 4 bits en GPU y dequantizar un experto a la vez, sólo cuando el enrutador lo pide. Chiquito lo implementa con la "decuantización perezosa",<Note label="Contexto">Vive en la clase [`LazyDequantExperts`](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/lazy_experts.py).</Note> un envoltorio que se comporta como un tensor 3D a efectos de indexación pero que por dentro guarda los pesos empaquetados y dequantiza una sección sólo cuando alguien se la pide.
+
+El truco está en que la implementación "eager" del MoE de HuggingFace accede a los expertos uno a uno, por índice escalar. Chiquito usa el método mágico el `__getitem__` para disparar la dequantización. Cada llamada devuelve una matriz lista para la multiplicación, sin haber tocado a los expertos que ese token no usa.
+
+| Estrategia | VRAM |
+| :--- | :--- |
+| Dequantizar todos los pesos | ~4.8 GB |
+| Empaquetado 4 bits + dequantizar bajo demanda | ~1.2 GB + ~37 MB por experto activo |
+
+### Partir tensores tridimensionales
+
+El splitter que vimos antes se diseñó para capas lineales clásicas, con pesos de forma `(out_features, in_features)`. Los tensores fusionados añaden una dimensión al principio, así que Chiquito los aplana a 2D antes de pasarlos a `bitsandbytes`, cuantiza el resultado y guarda la forma original en una entrada aparte.<Note label="Contexto">Al cuantizar, el splitter considera como caso especial los [tensores con más de dos dimensiones](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/splitter.py#L82-L106).</Note> Ese metadato es lo que, al cargar la capa, permite al envoltorio perezoso saber cuántos expertos hay y qué dimensiones tiene cada uno.
+
+### Activación automática
+
+Todas estas piezas se activan solas cuando Chiquito encuentra un modelo MoE compatible. Al inicializarse, se registra la arquitectura `Qwen3.5 Moe`<Note label="Contexto">La [línea de registro](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/__init__.py#L5) aprovecha la misma fábrica `AutoModel` que se usa para los modelos densos.</Note>. La fábrica `AutoModel` hace el resto: detecta la arquitectura en `config.json`, instancia la subclase correcta y el usuario recibe un modelo que se comporta igual que los demás.
+
+```python
+from chiquito import AutoModel
+
+model = AutoModel.from_pretrained(
+    "Qwen/Qwen3.5-MoE-A3B-Instruct",
+    quantization="4bit",
+)
+```
+
+Ni la partición por capas, ni el bucle de inferencia, ni la ventana deslizante notan la diferencia: el modelo se carga, se parte, se cuantiza y se ejecuta con el mismo protocolo que un modelo denso, solo con dos piezas extra que se activan en silencio cuando aparecen tensores fusionados.
+
 ## Conclusiones
 
 Como hemos visto, se puede cargar un modelo que no cabe en la VRAM de una GPU doméstica. Pero al precio de aceptar que la inferencia tardará mucho más: los ~30 minutos que cuestan 20 tokens con un modelo de 32B sin cuantizar en 8 GB de VRAM no son un error de implementación, son el coste real de mover los pesos a la VRAM una y otra vez. **Chiquito no es una optimización para producción, es una herramienta para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
 
-Lo interesante es que las tres piezas que hacen esto posible son sorprendentemente clásicas:
+Lo interesante es que las piezas que hacen esto posible son sorprendentemente clásicas:
 
 - La inferencia capa por capa es una aplicación directa del patrón de jerarquía de memoria: si el nivel rápido no cabe, despachas en bloques.
 - La ventana deslizante es un productor-consumidor de manual con bloqueo.
 - La cuantización es tamaño contra precisión, delegada en una librería estándar.
+- La decuantización en mezclas de expertos es perezosa para decuantizar solo lo que se va a usar.
 
 Ninguna de las ideas es nueva y esa es precisamente la gracia: con piezas conocidas bien combinadas se puede hacer caber lo que no cabe, siempre que aceptes el sacrificio en rendimiento.
 
