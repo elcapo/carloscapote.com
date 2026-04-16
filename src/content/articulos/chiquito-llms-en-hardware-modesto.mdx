@@ -17,7 +17,7 @@ import ForwardPassTimeline from '../../components/chiquito/ForwardPassTimeline.a
 import AttentionMaskVisualizer from '../../components/chiquito/AttentionMaskVisualizer.astro';
 import SlidingWindowCache from '../../components/chiquito/SlidingWindowCache.astro';
 
-Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo primero que necesitas es poder cargarlo. Pero en condiciones normales, un modelo de 32B parámetros<Note label="Aclaración"><strong>32B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, que son <strong>32&nbsp;mil millones</strong> de parámetros.</Note> en precisión completa ocupa decenas de gigas en memoria, fuera del alcance de la mayor parte de las tarjetas gráficas domésticas.
+Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo primero que necesitas es poder cargarlo. Pero en condiciones normales, un modelo de 122B parámetros<Note label="Aclaración"><strong>122B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, que son <strong>122&nbsp;mil millones</strong> de parámetros.</Note> en precisión completa ocupa decenas de gigas en memoria, fuera del alcance de la mayor parte de las tarjetas gráficas domésticas.
 
 <Chart
     title="Memoria (fp16) frente a parámetros del modelo"
@@ -25,12 +25,13 @@ Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo p
     yLabel="Memoria (GB)"
     xScale="linear"
     yScale="linear"
-    xTicks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70]}
+    xTicks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125]}
     data={[
         { x: 1,  y: 2 },
         { x: 7,  y: 14 },
         { x: 32, y: 65 },
         { x: 70, y: 140 },
+        { x: 122, y: 244 },
     ]}
 />
 
@@ -40,7 +41,7 @@ La pregunta natural es: ¿se puede sortear esa limitación? En este artículo te
 
 Antes de entrar en detalles, hay que dejarlo claro: **al cargar un modelo por capas se sacrifica el rendimiento**. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
 
-> En mis pruebas, con un equipo de 8 GB de VRAM, generar 20 tokens llevó más de 30 minutos.
+> En mis pruebas, con un equipo de 8 GB de VRAM, generar 20 tokens llevó más de 30 minutos con un modelo de 122B con una cuantización de 4 bits.
 
 Esta técnica no tiene sentido en producción. Solo tiene sentido cuando quieres examinar en local cómo funciona un modelo que no cabe en la memoria de tu tarjeta gráfica.
 
@@ -79,7 +80,10 @@ Esto permite construir la arquitectura completa de un modelo —con todas sus ca
 from accelerate import init_empty_weights
 from transformers import AutoModelForCausalLM, AutoConfig
 
-config = AutoConfig.from_pretrained("Qwen/Qwen2.5-32B")
+config = AutoConfig.from_pretrained(
+    "Qwen/Qwen2.5-Coder-32B-Instruct"
+)
+
 with init_empty_weights():
     model = AutoModelForCausalLM.from_config(config)
 ```
@@ -104,7 +108,7 @@ Chiquito usa HuggingFace para la carga de modelos. **En HuggingFace, todo modelo
 from transformers import AutoConfig
 
 config = AutoConfig.from_pretrained(
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    "Qwen/Qwen2.5-Coder-32B-Instruct"
 )
 ```
 
@@ -113,7 +117,7 @@ config = AutoConfig.from_pretrained(
 | config | num_hidden_layers | 22 |
 | config | hidden_size | 2048 |
 | config | vocab_size | 32000 |
-| config | architectures | ["LlamaForCausalLM"] |
+| config | architectures | ["Qwen2ForCausalLM"] |
 
 Esta operación es ligera: descarga el correspondiente archivo `config.json` del modelo sin descargar sus pesos. Chiquito usa la configuración en dos momentos clave:
 
@@ -153,7 +157,7 @@ HuggingFace proporciona un método<Note label="Contexto">La API de HuggingFace i
 import huggingface_hub
 
 cache_path = huggingface_hub.snapshot_download(
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "Qwen/Qwen2.5-Coder-32B-Instruct",
     token=None, # necesario si el modelo es privado
     ignore_patterns=["*.bin"], # ignorar pesos en formato antiguo
 )
@@ -407,7 +411,7 @@ Esta tabla informa sobre lo que decide si una máquina concreta puede siquiera a
 
 ## Conclusiones
 
-Como hemos visto, se puede cargar un modelo que no cabe en la VRAM de una GPU doméstica. Pero al precio de aceptar que la inferencia tardará mucho más: los ~30 minutos que cuestan 20 tokens con un modelo de 32B en 8 GB de VRAM no son un error de implementación, son el coste real de mover los pesos a la VRAM una y otra vez. **Chiquito no es una optimización para producción, es una lupa para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
+Como hemos visto, se puede cargar un modelo que no cabe en la VRAM de una GPU doméstica. Pero al precio de aceptar que la inferencia tardará mucho más: los ~30 minutos que cuestan 20 tokens con un modelo de 32B sin cuantizar en 8 GB de VRAM no son un error de implementación, son el coste real de mover los pesos a la VRAM una y otra vez. **Chiquito no es una optimización para producción, es una herramienta para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
 
 Lo interesante es que las tres piezas que hacen esto posible son sorprendentemente clásicas:
 
