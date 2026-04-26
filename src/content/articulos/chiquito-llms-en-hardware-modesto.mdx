@@ -317,50 +317,23 @@ Esta misma idea se aplica a las dos fases en las que se divide la inferencia, co
 
 <AttentionMaskVisualizer />
 
-## Gestión de la memoria
-
-El ciclo `cargar` → `ejecutar` → `liberar` del que hablábamos en la sección anterior pone bastante presión sobre la memoria. Cada pasada por el modelo crea y destruye tensores grandes una y otra vez y ni Python ni PyTorch devuelven al sistema toda esa memoria de forma automática.
-
-Si no hacemos nada, lo que debería ser una ventana móvil se convierte en un goteo continuo de memoria fantasma que el sistema operativo cree ocupada pero que ya no le sirve a nadie. Chiquito combate esto con dos rutinas de limpieza de distinta intensidad y un pequeño truco para acelerar los traspasos a la GPU.
-
-### Limpieza ligera después de cada capa
-
-Cuando borras un tensor de GPU, PyTorch no devuelve esa memoria a CUDA. Se la queda en una caché interna para poder reutilizarla sin pedirla otra vez al sistema.<Note label="Contexto">PyTorch usa un [asignador de memoria propio](https://docs.pytorch.org/docs/stable/notes/cuda.html#memory-management) por encima de CUDA. Los bloques liberados no se devuelven, se guardan para la siguiente reserva.</Note> En una inferencia normal eso ayuda, pero en una inferencia por capas no: los bloques que liberó la capa anterior no sirven para la siguiente y si nadie los suelta terminan ocupando el sitio que necesita la capa recién cargada. Por eso, después de ejecutar cada capa, Chiquito libera la memoria CUDA.<Note label="Contexto">[El bucle de inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L519) invoca la limpieza de la memoria CUDA justo al terminar de procesar cada capa.</Note>
-
-### Limpieza profunda en momentos concretos
-
-Hay una segunda rutina, bastante más cara, que Chiquito reserva para momentos puntuales: al iniciar el modelo, al terminar de partirlo por capas, al reinicializar modelos cuantizados. Nunca dentro del bucle de inferencia.<Note label="Contexto">La [limpieza profunda](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L10-L17) combina tres llamadas: una pasada del recolector de basura de Python, una llamada que devuelve al sistema operativo los trozos de heap libres y la limpieza de memoria CUDA.</Note>
-
-Es una limpieza a fondo que, entre otras cosas, fuerza al recolector de basura de Python a pasar, le pide al sistema que libere los trozos de memoria que Python ya no usa pero seguían reservados, y vacía la caché de CUDA.
-
-### Memoria clavada para acelerar los traspasos
-
-Queda un último detalle que no es exactamente una limpieza pero forma parte del mismo sistema. Cuando un tensor viaja de RAM a la GPU, CUDA exige que esté en una región de RAM que el sistema operativo no pueda mandar al disco: lo que se conoce como *memoria clavada*. Si la memoria no está clavada, CUDA la copia primero a una zona temporal clavada y sólo después al destino.<Note label="Definición">La memoria "clavada" es una memoria fijada a una página física de RAM que el kernel no puede mover ni enviar al fichero de swap. Eso permite al controlador de la GPU transferirla por [DMA sobre PCIe](https://en.wikipedia.org/wiki/Direct_memory_access) directamente al destino, sin copia intermedia.</Note>
-
-Chiquito aprovecha esto cuando precarga los pesos en RAM: cada tensor que baja a su caché local se marca como clavado.<Note label="Contexto">Al inicializar el modelo, se [precargan todas las capas](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) a la RAM clavada.</Note> Así que cuando llega el turno de esa capa su traspaso a VRAM salta directamente vía DMA sin copia intermedia. Eso hace que el modo de precarga no sólo ahorre lecturas de disco sino que además mueva los pesos a la GPU de forma notablemente más rápida.
-
 ## Precarga con ventana deslizante
 
-Ya hemos tocado la precarga de reojo al hablar de la memoria clavada, pero no hemos explicado qué alternativas hay ni cuál usa Chiquito por defecto. El recorrido capa a capa que vimos en la sección de inferencia lee cada bloque del disco justo antes de ejecutarlo, y lo hace además *cada vez* que la capa aparece en el bucle.
+El recorrido capa a capa que vimos en la sección de inferencia lee cada bloque del disco justo antes de ejecutarlo y lo hace además *cada vez* que la capa aparece en el bucle.
 
-Con 67 capas y veinte tokens por generar son más de mil lecturas de disco por respuesta. La buena noticia es que ese disco se puede cambiar por RAM: si tienes algo de memoria libre, puedes precargar por adelantado los pesos que el bucle de inferencia va a pedir a continuación. Chiquito ofrece tres estrategias distintas, todas controladas por un parámetro.
+Con 67 capas y 20 tokens por generar son más de 1.000 lecturas de disco por respuesta. La buena noticia es que ese disco se puede cambiar por RAM: si tienes algo de memoria libre, puedes precargar por adelantado los pesos antes de que el bucle de inferencia los utilice. Chiquito ofrece tres estrategias distintas, todas controladas por un parámetro.
 
 | `preload_to_ram` | Dónde viven los pesos | RAM que usa | Velocidad |
 | :---: | :--- | :--- | :--- |
-| `True` | RAM del sistema (clavada) | Modelo entero | La más rápida |
+| `True` | RAM del sistema | Modelo entero | La más rápida |
 | `False` | Disco | Mínima | La más lenta |
 | *N* | RAM del sistema, *N* capas | Proporcional a *N* | Intermedia |
 
 ### Precargar el modelo entero
 
-En el modo más agresivo, Chiquito vuelca al arrancar todas las capas del modelo a una caché local en RAM clavada. A partir de ese momento la función que carga pesos a CPU deja de tocar el disco.<Note label="Contexto">La carga en bloque ocurre durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) y el [despacho posterior](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L311-L316) devuelve el diccionario ya preparado sin tocar el disco.</Note>
+En el modo más agresivo, Chiquito vuelca al arrancar todas las capas del modelo a una caché local en RAM. A partir de ese momento la función que carga pesos a CPU deja de tocar el disco.<Note label="Contexto">La carga en bloque ocurre durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) y el [despacho posterior](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L311-L316) devuelve el diccionario ya preparado sin tocar el disco.</Note>
 
-Es el modo más rápido por dos motivos:
-
-- Ya no hay lecturas de disco durante el bucle de inferencia.
-- La RAM clavada permite a CUDA mover los pesos a GPU por DMA sin copia intermedia.
-
-A cambio, **el modelo entero tiene que caber en RAM**: un modelo de 32B en fp16 pide unos 65 GB solo para los pesos.
+Es el modo más rápido porque elimina las lecturas de disco durante el bucle de inferencia. A cambio, **el modelo entero tiene que caber en RAM**: un modelo de 32B en fp16 pide unos 65 GB solo para los pesos.
 
 ### Leer siempre del disco
 
@@ -379,21 +352,17 @@ Esto se conoce como **patrón productor-consumidor**:
 
 Antes de arrancar el recorrido propiamente dicho, Chiquito precarga las *N* primeras capas de forma síncrona.<Note label="Contexto">Cuando [empieza la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L47-L58), se llena la ventana inicial antes de lanzar el hilo de fondo, garantizando que cuando se procese la primera capa los pesos ya estarán disponibles.</Note> Solo cuando la ventana está llena echa a andar el hilo productor y cede el control al bucle de inferencia.
 
-En ese momento comienza el baile: el consumidor ejecuta una capa y la libera, notificando al productor; el productor ocupa el hueco cargando la siguiente capa de la ventana; mientras tanto, el consumidor ya estaba pidiéndole a la caché la siguiente capa, y así sucesivamente.
-
 <SlidingWindowCache title="Ventana deslizante simulada sobre un modelo de 8 capas" />
 
-Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Contexto">La [carga de una capa](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. <br/><br/>Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda.<br/><br/>Cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
-
-La caché se destruye y se vuelve a crear en cada paso del bucle generativo.<Note label="Contexto">Al [inicio de cada inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L303-L309) se detiene la caché anterior y se arranca una nueva desde cero. La ventana solo tiene sentido dentro de una misma pasada por el modelo: al llegar al último bloque, el hilo productor ya no tiene nada que hacer.</Note> Es decir: la ventana no persiste entre tokens. Se construye, recorre las *M* capas durante ese paso y se desmonta al llegar a la última. En la siguiente iteración, cuando toca generar el siguiente token, vuelve a empezar el warmup desde cero.
+> Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Contexto">La [carga de una capa](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. <br/><br/>Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda.<br/><br/>Cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
 
 ## Cuantización
 
-Hasta aquí todas las optimizaciones han sido sobre cuándo y dónde guardar los pesos, no sobre cuánto pesan. La última pieza va justo al contrario: reducir el tamaño de cada peso antes de moverlo. En el bucle capa a capa el cuello de botella no es la GPU calculando sino el bus PCIe transportando pesos desde RAM hasta VRAM, así que **si cada tensor ocupa la mitad, cada transferencia tarda la mitad**.
+Hasta aquí todas las optimizaciones han sido sobre cuándo y dónde guardar los pesos, no sobre cuánto pesan. La última pieza va justo al contrario: reducir el tamaño de cada peso antes de moverlo. En el bucle capa a capa el cuello de botella no es la tarjeta gráfica calculando sino el bus subiendo datos hasta tarjeta gráfica, así que **si cada tensor ocupa la mitad, cada transferencia tarda la mitad**.
 
-Chiquito no aporta nada original en este frente: se apoya en **bitsandbytes**, que es la librería estándar para esto.<Note label="Definición">[bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) es una librería que ofrece dos modos de cuantización al vuelo: **8 bits** y **4 bits** y se encarga de sustituir las capas lineales del modelo por variantes cuantizadas que convierten el tensor en el momento en que se mueve a GPU.</Note>
+Chiquito no aporta nada original aquí: se apoya en **bitsandbytes**, que es la librería estándar para esto.<Note label="Definición">[bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) es una librería que ofrece dos modos de cuantización al vuelo: **8 bits** y **4 bits** y se encarga de sustituir las capas lineales del modelo por variantes cuantizadas que convierten el tensor en el momento en que se mueve a GPU.</Note>
 
-La aritmética es la que cabría esperar. En fp16 cada parámetro ocupa 2 bytes; en 8 bits, 1 byte; en 4 bits, medio byte. **Pasar a 4 bits reduce cuatro veces el coste de transferencia**, que es el que manda.<Note label="Cuantización">Durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L211-L237), si el usuario pide cuantización, se crea un `BitsAndBytesConfig` y se deja que `bitsandbytes` reemplace las capas lineales.</Note>
+> La aritmética es la que cabría esperar. En fp16 cada parámetro ocupa 2 bytes; en 8 bits, 1 byte; en 4 bits, medio byte. **Pasar a 4 bits reduce cuatro veces el coste de transferencia**, que es el que manda.<Note label="Cuantización">Durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L211-L237), si el usuario pide cuantización, se crea un `BitsAndBytesConfig` y se deja que `bitsandbytes` reemplace las capas lineales.</Note>
 
 ### Tamaño por capa
 
