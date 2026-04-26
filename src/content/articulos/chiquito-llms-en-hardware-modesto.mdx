@@ -17,7 +17,7 @@ import ForwardPassTimeline from '../../components/chiquito/ForwardPassTimeline.a
 import AttentionMaskVisualizer from '../../components/chiquito/AttentionMaskVisualizer.astro';
 import SlidingWindowCache from '../../components/chiquito/SlidingWindowCache.astro';
 
-Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo primero que necesitas es poder cargarlo. Pero en condiciones normales, un modelo de 122B parámetros<Note label="Aclaración"><strong>122B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, que son <strong>122&nbsp;mil millones</strong> de parámetros.</Note> en precisión completa ocupa decenas de gigas en memoria, fuera del alcance de la mayor parte de las tarjetas gráficas domésticas.
+Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo primero que tienes que hacer es cargarlo. Pero imagina que quieres estudiar un modelo de 122B parámetros.<Note label="Aclaración"><strong>122B</strong> sigue la convención anglosajona, donde <em>billion</em> equivale a 10<sup>9</sup>. Es decir, que son <strong>122&nbsp;mil millones</strong> de parámetros.</Note> En condiciones normales, ocupa más de 200 gigas en memoria. Así que, en tu tarjeta gráfica no sé, pero en la mía no cabe.
 
 <Chart
     title="Memoria (fp16) frente a parámetros del modelo"
@@ -35,15 +35,15 @@ Si quieres estudiar cómo funciona un modelo grande de lenguaje por dentro, lo p
     ]}
 />
 
-La pregunta natural es: ¿se puede sortear esa limitación? En este artículo te hablo sobre **Chiquito**, un repositorio que he creado inspirado por AirLLM,<Note label="Definición">[AirLLM](https://github.com/lyogavin/airllm) es un proyecto de [Gavin Li](https://github.com/lyogavin) que optimiza el uso de la memoria de inferencia, lo que permite que modelos de lenguaje de 70B se ejecuten en una sola tarjeta GPU de 4 GB sin cuantización, destilación ni poda.</Note> que propone una técnica para cargar modelos más grandes que la VRAM disponible: cargar el modelo capa por capa, ejecutando cada bloque y liberándolo antes de cargar el siguiente.
+¿Hay alguna alternativa? ¿o nos tenemos que conformar con modelos más pequeños? Te presento Chiquito, un repositorio pedagógico que he creado inspirado por AirLLM,<Note label="Definición">[AirLLM](https://github.com/lyogavin/airllm) es un proyecto de [Gavin Li](https://github.com/lyogavin) que optimiza el uso de la memoria de inferencia, lo que permite que modelos de lenguaje de 70B se ejecuten en una sola tarjeta GPU de 4 GB sin cuantización, destilación ni poda.</Note> que propone cargar los modelos por capas para poder cargar modelos mucho más grandes que la memoria de tu tarjeta gráfica.
 
 ## El sacrificio
 
-Antes de entrar en detalles, hay que dejarlo claro: **al cargar un modelo por capas se sacrifica el rendimiento**. Cada vez que cargamos una capa en la memoria de nuestra GPU estamos realizando una operación que lleva tiempo.
+Antes de entrar en detalles, hay que dejar una cosa clara: **al cargar un modelo por capas, sacrificas rendimiento**. Cada vez que cargamos una capa en la memoria de nuestra tarjeta gráfica estamos realizando una operación que lleva tiempo.
 
-> En mis pruebas, con un equipo de 8 GB de VRAM, generar 20 tokens llevó más de 30 minutos con un modelo de 122B con una cuantización de 4 bits.
+> En mis pruebas, con una tarjeta gráfica de 8 GB, generar 20 tokens llevó más de 30 minutos con un modelo de 122B de 4 bits.
 
-Esta técnica no tiene sentido en producción. Solo tiene sentido cuando quieres examinar en local cómo funciona un modelo que no cabe en la memoria de tu tarjeta gráfica.
+Así que no tiene sentido usar esta técnica en producción. Solo tiene sentido cuando quieres examinar en local cómo funciona un modelo que no cabe en la memoria de tu tarjeta gráfica.
 
 
 ### Estimador de tiempo de inferencia
@@ -52,15 +52,15 @@ Esta técnica no tiene sentido en producción. Solo tiene sentido cuando quieres
 
 ## Cómo funciona
 
-Una vez has entendido que esta técnica no pretende ser rápida sino resolver el problema de poder ejecutar, aunque sea despacio, modelos grandes en equipos con GPUs modestas, podemos empezar a hablar sobre cómo lo consigue.
+Una vez has entendido que esta técnica no pretende ser rápida sino resolver el problema de poder ejecutar, aunque sea despacio, modelos grandes en equipos con tarjetas gráficas modestas, podemos empezar a hablar sobre cómo lo consigue.
 
 ### Los dispositivos `meta` de PyTorch
 
-Para poder cargar un modelo capa a capa, necesitas saber qué "forma" tiene ese modelo: cuántas capas tiene, qué tipo de módulos contiene cada una y qué dimensiones tienen sus tensores.
+Para poder cargar un modelo, necesitas saber qué "forma" tiene. Es decir: cuántas capas tiene, qué tipo de módulos tiene cada una y qué dimensiones tienen sus tensores.
 
-Pero si intentas cargar el modelo de la forma habitual PyTorch reservará memoria para todos los pesos de golpe, que es exactamente lo que intentamos evitar. Aquí es donde entran los dispositivos meta de PyTorch.<Note label="Definición">El dispositivo “[meta](https://docs.pytorch.org/docs/stable/meta.html)” es un dispositivo abstracto que denota un tensor que registra únicamente metadatos, pero ningún dato real.</Note>
+Pero si intentas cargar el modelo de la forma habitual, PyTorch reserva memoria para el modelo entero, con todos sus pesos, de golpe. Y esto es justo lo que queremos evitar.
 
-**Un tensor en el dispositivo meta tiene forma y tipo de dato pero no ocupa ni un solo byte de memoria**. Es algo así como un tensor fantasma: sabe lo que mide pero no contiene nada.
+Aquí es donde entran los dispositivos meta de PyTorch.<Note label="Definición">El dispositivo “[meta](https://docs.pytorch.org/docs/stable/meta.html)” es un dispositivo abstracto que denota un tensor que registra únicamente metadatos, pero ningún dato real.</Note> **Un tensor en el dispositivo meta tiene dimensiones y tiene un tipo de dato asociado pero no ocupa nada en memoria**.
 
 ```python
 import torch
@@ -74,7 +74,7 @@ print(t.device) # meta
 >
 > En el dispositivo meta ocupa 0 bytes.
 
-Esto permite construir la arquitectura completa de un modelo —con todas sus capas, submódulos y dimensiones correctas— sin gastar memoria. La librería `accelerate` de Hugging Face<Note label="Definición">La librería [Accelerate](https://huggingface.co/docs/accelerate/index) de Hugging Face es una herramienta diseñada para simplificar el entrenamiento y la ejecución de modelos de aprendizaje automático en distintos entornos de hardware (CPU, GPU, múltiples GPUs o TPUs) sin necesidad de cambiar significativamente el código.</Note> ofrece un gestor de contexto que hace exactamente esto:
+Esto permite tener la definición completa de un modelo —con todas sus capas, módulos y dimensiones— antes de meterlo en memoria. La librería `accelerate` de Hugging Face<Note label="Definición">La librería [Accelerate](https://huggingface.co/docs/accelerate/index) de Hugging Face es una herramienta diseñada para simplificar el entrenamiento y la ejecución de modelos de aprendizaje automático en distintos entornos de hardware (CPU, GPU, múltiples GPUs o TPUs) sin necesidad de cambiar significativamente el código.</Note> ofrece un gestor de contexto que hace exactamente esto:
 
 ```python
 from accelerate import init_empty_weights
@@ -94,15 +94,15 @@ with init_empty_weights():
 
 **Chiquito** se apoya en este mecanismo en tres momentos:
 
-- Al iniciar crea toda la estructura del modelo en meta para saber qué capas existen y cuánto pesa cada una.<Note label="Contexto">Al [crear el modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L196-L208) se usa el gestor de contexto de la librería Accelerate que permite cargar el modelo en el dispositivo `meta`.</Note>
+- Al iniciarse, crea la estructura del modelo en el dispositivo meta para saber qué capas tiene y cuál es su tamaño.<Note label="Contexto">Al [crear el modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L196-L208) se usa el gestor de contexto de la librería Accelerate que permite cargar el modelo en el dispositivo `meta`.</Note>
 
-- Durante la inferencia carga los pesos reales de cada capa desde RAM a GPU justo antes de ejecutarla.<Note label="Contexto">Justo antes de usar cada capa para [inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328) se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
+- Durante la inferencia, carga los pesos reales de cada capa en la tarjeta gráfica justo antes de ejecutarla.<Note label="Contexto">Justo antes de usar cada capa para [inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328) se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
 
-- Por último, una vez procesada la capa, la devuelve al dispositivo meta, liberando la VRAM.<Note label="Contexto">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria se [mueve el tensor al dispositivo meta](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
+- Y, por último, una vez procesada cada capa, la devuelve al dispositivo meta dejando libre la memoria de la tarjeta gráfica.<Note label="Contexto">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria se [mueve el tensor al dispositivo meta](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
 
 ## Carga desde HuggingFace
 
-Chiquito usa HuggingFace para la carga de modelos. **En HuggingFace, todo modelo tiene un archivo JSON que describe su arquitectura** sin contener ningún peso. Puedes descargarlo con `AutoConfig`:
+Chiquito usa la API de HuggingFace para descargar los modelos. Y **en HuggingFace, los modelos tienen un archivo JSON que describe su arquitectura** y que puedes descargar usando la clase `AutoConfig`:
 
 ```python
 from transformers import AutoConfig
@@ -119,26 +119,28 @@ config = AutoConfig.from_pretrained(
 | config | vocab_size | 32000 |
 | config | architectures | ["Qwen2ForCausalLM"] |
 
-Esta operación es ligera: descarga el correspondiente archivo `config.json` del modelo sin descargar sus pesos. Chiquito usa la configuración en dos momentos clave:
+Esta operación es ligera porque descarga el archivo de configuración del modelo, sin descargar sus pesos. Chiquito usa la configuración en dos momentos clave:
 
-- Para contar las capas y construir la lista de nombres de cada una.<Note label="Contexto">Cuando se [carga la configuración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L167-L189), se crea el modelo en el dispositivo `meta` y se recorre el árbol de módulos para contar cuántas capas tiene.</Note>
+- Para contar las capas y construir una lista con sus nombres.<Note label="Contexto">Cuando se [carga la configuración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L167-L189), se crea el modelo en el dispositivo `meta` y se recorre el árbol de módulos para contar cuántas capas tiene.</Note>
 - Para detectar la arquitectura del modelo y saber qué clase instanciar.<Note label="Contexto">El campo `config.architectures[0]` se usa para [seleccionar automáticamente la clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/auto_model.py#L34) de modelo correcta.</Note>
+
+Pero hay una pieza que va antes que el modelo: el tokenizador.
 
 ### El tokenizador
 
-Los modelos no trabajan con texto sino con secuencias de números enteros. **El tokenizador es el componente que convierte texto en identificadores numéricos** y viceversa. Puedes probarlo aquí: escribe una frase y observa cómo se descompone en tokens.
+Los modelos no trabajan con texto sino con secuencias de números enteros. **Y el tokenizador es el componente que convierte texto en valores numéricos** y viceversa. Puedes probarlo aquí: escribe una frase y observa cómo se descompone en tokens.
 
 <TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={false} />
 
-Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas. Una vez convertido el texto en identificadores, el modelo necesita los pesos para procesarlos. Esos pesos viven en archivos safetensors.
+Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas del modelo. Una vez convertido el texto en identificadores, necesitamos los pesos del modelo para procesarlos. Y esos pesos duermen en archivos.
 
 ### Los archivos safetensors
 
-En HuggingFace, **los pesos del modelo se almacenan en archivos safetensors**, un formato binario simple, rápido y que permite mapeo en memoria.<Note label="Definición">El formato [safetensors](https://huggingface.co/docs/safetensors/index) fue creado por Hugging Face como alternativa más segura y eficiente al formato pickle que usa PyTorch por defecto. Cada archivo es un mapeo plano de nombre de parámetro a tensor.</Note>
+En HuggingFace, **los pesos del modelo se almacenan en archivos safetensors**, que es un formato binario simple, rápido y que permite mapeo en memoria.<Note label="Definición">El formato [safetensors](https://huggingface.co/docs/safetensors/index) fue creado por Hugging Face como alternativa más segura y eficiente al formato pickle que usa PyTorch por defecto. Cada archivo es un mapeo plano de nombre de parámetro a tensor.</Note>
 
 ### El mapa de pesos
 
-Un modelo pequeño puede caber en un único archivo pero los modelos grandes se fragmentan en varios archivos. Cuando un modelo está fragmentado, existe un archivo índice<Note label="Contexto">Los modelos de HuggingFace fragmentados tienen un archivo llamado [model.safetensors.index.json](https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite-Chat/blob/main/model.safetensors.index.json) que relaciona cada peso con el fichero Safetensors en el que está definido.</Note> que mapea cada parámetro al fragmento que lo contiene:
+Hay modelos pequeños que caben en un único archivo pero los modelos grandes se dividen en más de un archivo. Cuando un modelo está dividido, existe un índice<Note label="Contexto">Los modelos de HuggingFace fragmentados tienen un archivo llamado [model.safetensors.index.json](https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite-Chat/blob/main/model.safetensors.index.json) que relaciona cada peso con el fichero Safetensors en el que está definido.</Note> que mapea cada parámetro con el archivo que lo contiene:
 
 | Peso | Fichero |
 | :---  | :--- |
@@ -147,11 +149,11 @@ Un modelo pequeño puede caber en un único archivo pero los modelos grandes se 
 | `model.layers.31.mlp.up_proj.weight` | model-00004-of-00004.safetensors |
 | `lm_head.weight` | model-00004-of-00004.safetensors |
 
-Este mapa de pesos es lo que hace posible la carga selectiva: podemos saber en qué fragmento están los parámetros de una capa concreta sin tener que cargarlo todo. Chiquito parsea este mapa para decidir qué archivos necesita abrir en cada momento.<Note label="Contexto">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas.<br/><br/>Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
+Este mapa de pesos es lo que hace posible la carga selectiva de modelos grandes: podemos saber en qué fragmento están los parámetros de cada capa sin tener que cargar el modelo entero. Chiquito usa este mapa para decidir qué archivos necesita en cada momento.<Note label="Contexto">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas.<br/><br/>Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
 
 ### Descarga desde el Hub
 
-HuggingFace proporciona un método<Note label="Contexto">La API de HuggingFace implementa el método [`snapshot_download`](https://huggingface.co/docs/huggingface_hub/guides/download#download-an-entire-repository) que permite descargar un repositorio completo para una revisión dada.</Note> para descargar los archivos de un modelo a una caché local:
+HuggingFace proporciona un método<Note label="Contexto">La API de HuggingFace implementa el método [`snapshot_download`](https://huggingface.co/docs/huggingface_hub/guides/download#download-an-entire-repository) que permite descargar un repositorio completo para una revisión dada.</Note> para descargar un modelo:
 
 ```python
 import huggingface_hub
@@ -163,7 +165,7 @@ cache_path = huggingface_hub.snapshot_download(
 )
 ```
 
-La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en que fueron guardados. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada. Chiquito envuelve esta lógica en una función que primero comprueba si la ruta es un directorio local con archivos de modelo y, solo si no lo es, descarga desde el Hub.<Note label="Contexto">Durante la carga del modelo, Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de descargarlo.</Note>
+La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en la que los descargó. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada.<Note label="Contexto">Durante la carga del modelo, Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de descargarlo.</Note>
 
 Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.
 
@@ -175,28 +177,32 @@ Para cargar un modelo capa por capa no hace falta entender en profundidad sus ma
 flowchart LR
     C(Embeddings) --> D@{ shape: processes, label: "Transformers" }
     D --> E(Normalización)
-    E --> F(Cabeza)
+    E --> F(Capa de salida)
 ```
 
 ### Embeddings
 
-El primero es el **embedding**, una tabla de búsqueda que convierte los identificadores enteros que produce el tokenizador en vectores densos. Si el vocabulario tiene 32.000 tokens y la dimensión oculta es 2.048, el embedding es una matriz de forma `(32000, 2048)`. Recibe un tensor `(batch, seq_len)` y devuelve un tensor `(batch, seq_len, hidden_dim)`.
+El primero es el **embedding**, una tabla de búsqueda que convierte los identificadores enteros que produce el tokenizador en vectores densos.
+
+> Si el vocabulario tiene 32.000 tokens y la dimensión oculta es 2.048, el embedding es una matriz de forma `(32000, 2048)`. Recibe un tensor `(batch, seq_len)` y devuelve un tensor `(batch, seq_len, hidden_dim)`.
 
 <TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={true} />
 
 ### Transformers
 
-A continuación viene el núcleo del modelo: las capas transformer. Cada capa recibe un estado oculto y devuelve otro con la misma forma. Por dentro contienen el mecanismo de autoatención y una red prealimentada, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras.
+A continuación viene el núcleo del modelo: las capas transformer. Cada capa recibe un tensor que representa un "estado oculto" y devuelve otro con la misma forma. Dentro se suceden el mecanismo de autoatención y una red prealimentada, pero para lo que nos ocupa aquí podemos tratarlas como cajas negras.
 
-Lo relevante es que **son el bloque que se repite *N* veces y concentra la mayor parte de los parámetros del modelo**: un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
+Lo relevante es que **son un bloque que se repite *N* veces y concentra la mayor parte de los parámetros del modelo**.
+
+> Un modelo de 1B como TinyLlama tiene 22 capas, uno de 32B puede tener 64. Este es el bloque que más tarda en cargarse y el que justifica toda la técnica.
 
 ### Normalización
 
-Después de la última capa viene la normalización final, que estabiliza los estados ocultos antes de la proyección final sin cambiar sus dimensiones.
+Después viene la normalización final, una capa inocente que estabiliza los estados ocultos antes de la proyección final. Y que también transforma los tensores sin cambiar sus dimensiones.
 
 ### Capa de salida
 
-Y por último, una proyección lineal lleva los estados ocultos desde la dimensión oculta hasta el tamaño del vocabulario. Su salida es un vector de logits con una puntuación por cada token del vocabulario. El token con la puntuación más alta es, a grandes rasgos, la predicción del modelo para la siguiente posición.
+Y por último, una proyección lineal lleva los estados ocultos desde la dimensión oculta hasta el tamaño del vocabulario. Su salida es un vector con una puntuación por cada token del vocabulario. El token con la puntuación más alta es, a grandes rasgos, la predicción del modelo para la siguiente posición.
 
 ## La convención de nombres
 
@@ -213,21 +219,31 @@ Estos nombres son los que aparecen como prefijos en el mapa de pesos del modelo.
 
 ### Recorrer el árbol de módulos
 
-Una vez creado el modelo sobre el dispositivo meta, podemos acceder a cualquier submódulo por su nombre recorriendo el árbol de atributos:
+Una vez creado el modelo sobre el dispositivo meta, teniendo en cuenta que tenemos los nombres de cada uno de sus módulos, podemos recorrerlo en un bucle de principio a fin: <Note label="Contexto">Chiquito usa este mecanismo para construir, al [arrancar](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292), una lista ordenada con todos los bloques del modelo.</Note>
 
 ```python
-module = model
-for attr in "model.layers".split("."):
-    module = getattr(module, attr)
+# Modelos tipo Llama
+LAYER_NAMES = {
+    "embed": "model.embed_tokens",
+    "layer_prefix": "model.layers",
+    "norm": "model.norm",
+    "lm_head": "lm_head",
+}
+
+for module_name in LAYER_NAMES.values():
+    module = model
+    for attr in module_name.split("."):
+        module = getattr(module, attr)
+    print(module_name, "> ", module)
 ```
 
-El resultado<Note label="Contexto">Chiquito usa este mecanismo para construir, al [arrancar](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292), una lista ordenada con todos los bloques del modelo.</Note> es una secuencia que el bucle de inferencia recorre de principio a fin, cargando los pesos de cada bloque justo antes de ejecutarlo y liberándolos después.
+Ya tenemos casi todo listo para empezar a procesar nuestro prompt pero nos falta todavía un detalle por resolver. Y es que los transformers miran todos los tokens a la vez, en paralelo. Esto es lo que los hace tan rápidos pero también significa que si no les damos una pista, no saben en qué orden va cada token.
 
 ### Las Rotary Position Embeddings
 
-Los transformers miran todos los tokens a la vez, sin un orden implícito. Eso significa que, sin ayuda, *"el gato se sentó en la alfombra"* y *"alfombra la en sentó se gato el"* les resultarían indistinguibles. Para evitarlo, **el modelo necesita saber en qué posición está cada token dentro de la frase**.
+Para un transformer, una frase como *"el gato se sentó en la alfombra"* es indistinguible de otra frase cualquiera con las mismas palabras, como *"alfombra la en sentó se gato el"*. Y aquí viene una idea clave, **el modelo necesita saber en qué posición está cada token dentro de la frase**.
 
-La mayoría de los modelos modernos resuelven esto con las Rotary Position Embeddings (RoPE),<Note label="Definición">RoPE codifica la posición aplicando pequeñas rotaciones a los vectores internos del modelo. Para lo que nos ocupa, basta con saber que es un ingrediente extra que las capas reciben junto a los tokens.</Note> una forma compacta de representar el número de posición de cada token para que las capas transformer puedan usarlo al procesarlos.
+La mayoría de los modelos modernos resuelven esto con las Rotary Position Embeddings (RoPE),<Note label="Definición">RoPE codifica la posición aplicando pequeñas rotaciones a los vectores internos del modelo. Para lo que nos ocupa, basta con saber que es un ingrediente extra que las capas reciben junto a los tokens.</Note> una forma de representar el número de posición de cada token para que las capas transformer puedan usarlo al procesarlos.
 
 Lo relevante para Chiquito es algo mucho más práctico: estas posiciones se calculan una sola vez al principio de cada inferencia y se reutilizan en todas las capas. Además, el módulo que las calcula no es un parámetro entrenado del modelo sino una tabla derivada de la configuración, así que cabe siempre en memoria y no necesita cargarse y descargarse capa por capa como el resto de los pesos.<Note label="Contexto">Chiquito [calcula las embeddings posicionales](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L340-L346) una vez al principio de cada paso de inferencia y las reutiliza en todas las capas.</Note>
 
@@ -237,21 +253,15 @@ Con los cuatro bloques identificados, los nombres mapeados y las posiciones resu
 
 Hasta aquí ya sabemos que HuggingFace guarda los pesos en uno o varios archivos safetensors y que el mapa de pesos nos dice dónde vive cada tensor. El problema es que **los pesos de una misma capa pueden estar repartidos entre varios fragmentos** y que cada fragmento, a su vez, mezcla pesos de capas distintas. Si para usar una capa tuviéramos que abrir el fragmento que la contiene y descartar todo lo demás, estaríamos leyendo cientos de megas sobrantes cada vez que pasáramos por esa capa.
 
-Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar sus pesos en un formato que le resulte cómodo: crea un directorio nuevo dentro del modelo, `chiquito_split/` y **escribe dentro un archivo Safetensors por cada bloque del transformer**.<Note label="Contexto">La lógica de esta partición de modelos vive en [`splitter.py`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py).</Note> Así, durante la ejecución del modelo, cargar una capa concreta es abrir un único archivo con solo los pesos que esa capa necesita y ninguno de más.
+Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar sus pesos en un formato que le resulte cómodo: crea un directorio nuevo y **escribe dentro un archivo Safetensors por cada capa del transformer**.<Note label="Contexto">La lógica de esta partición de modelos vive en [`splitter.py`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py).</Note> Así, durante la ejecución del modelo, cargar una capa concreta es abrir un único archivo con solo los pesos que esa capa necesita y ninguno de más.
 
 > La partición es un coste que se paga una sola vez. La primera vez que Chiquito procesa un modelo nuevo lleva un rato, porque tiene que leer todos los fragmentos originales y escribir los nuevos por capas. Las siguientes veces detecta que ya está hecho y se salta el paso entero.
 
-### Tener en memoria lo justo
-
-El algoritmo es cuidadoso con la memoria. En lugar de cargar todos los fragmentos de golpe, va abriendo **solo los que la capa actual necesita**, acumula lo leído y borra los tensores de cada capa en cuanto acaba de escribirla en su archivo definitivo. Como las capas suelen estar en orden y los fragmentos originales contienen bloques contiguos, el proceso avanza de principio a fin sin llegar a tener nunca el modelo entero en RAM al mismo tiempo.
-
-Cuando una capa vive a caballo entre dos fragmentos —cosa que pasa con frecuencia en los modelos reales—, el proceso tiene que mantener los dos cargados a la vez durante el rato en que escribe esa capa. Es inevitable: no se puede guardar una capa a medias.
-
 ### El marcador `.done`
 
-Hay un detalle del proceso que tiene una motivación muy concreta. Después de escribir cada archivo Safetensors, Chiquito crea junto a él un segundo archivo vacío con el mismo nombre y la extensión `.done` añadida.
+Hay un detalle del proceso que parece innecesario pero que tiene una motivación muy concreta. Después de escribir cada archivo Safetensors, Chiquito crea junto a él un segundo archivo vacío con el mismo nombre y la extensión `.done`.
 
-Escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad de la escritura, lo que queda en disco es un archivo incompleto: existe, pero es inservible. **El marcador `.done` se crea justo después de que la escritura haya terminado sin problemas**, así que su mera presencia es la prueba de que el archivo de esa capa está íntegro.<Note label="Contexto">Si Chiquito se relanza después de una interrupción, [comprueba el directorio de partición](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L17-L22) y solo vuelve a procesar las capas cuyo `.done` no aparece. Las demás se asumen correctas y no se tocan.</Note>
+Esto se hace porque escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad de la escritura, lo que queda en disco es un archivo incompleto: existe, pero es inservible. **El archivo marcador se crea justo después de que la escritura haya terminado sin problemas**, así que su presencia indica que el archivo de esa capa está íntegro.<Note label="Contexto">Si Chiquito se relanza después de una interrupción, [comprueba el directorio de partición](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L17-L22) y solo vuelve a procesar las capas cuyo `.done` no aparece. Las demás se asumen correctas y no se tocan.</Note>
 
 <CheckpointSplitter
     weightMap={{
@@ -284,15 +294,15 @@ Escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad d
 
 Con el modelo ya repartido en archivos por capas llega la pieza que hace que todo lo anterior tenga sentido: ejecutar el modelo iterativamente capa por capa. Cada vez que el modelo tiene que predecir un token nuevo, el *prompt* tiene que pasar por todo el modelo. Este proceso se llama inferencia.<Note label="Contexto">De la implementación completa de la inferencia se encarga la clase [`ChiquitoModel`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L413-L531).</Note>
 
-El problema es el de siempre: no caben los pesos a la vez en la GPU. Lo que hace Chiquito es convertir esa única llamada en una secuencia de pequeñas cargas y descargas: **para cada bloque del modelo carga sus pesos en VRAM, lo ejecuta y los libera antes de pasar al siguiente**.
+El problema ya lo conocemos: no caben todos los pesos a la vez en la memoria de la tarjeta gráfica. Lo que hace Chiquito es convertir esa única llamada en una secuencia de pequeñas cargas y descargas: **para cada bloque del modelo carga sus pesos en la tarjeta gráfica, lo ejecuta y los libera antes de pasar al siguiente**.
 
-El resultado es que, en cualquier instante, la VRAM sólo contiene los pesos del bloque que se está ejecutando ahora mismo. **Es como una ventana móvil por la que el modelo va desfilando** mientras el tensor de estados ocultos lo atraviesa de principio a fin.
+El resultado es que, en cualquier instante, la memoria de la tarjeta gráfica sólo contiene los pesos del bloque que se está ejecutando. **Es como una ventana móvil por la que el modelo va desfilando** mientras el tensor de estados ocultos lo atraviesa de principio a fin.
 
 <ForwardPassTimeline title="Inferencia por capas simulada en un modelo con 2 transformers" />
 
 > Generar un texto no es un proceso por lotes: el ciclo `cargar` → `ejecutar` → `liberar` se repite entero por cada token que se quiere generar. Generar 20 tokens implica recorrer el modelo 20 veces, con todas sus cargas y descargas.
 
-Antes de empezar el recorrido, el proceso de inferencia se asegura de que el modelo arranca desde un estado limpio: todos los parámetros vuelven al dispositivo `meta` y la VRAM queda libre para los bloques de la nueva pasada.<Note label="Contexto">Durante cada [paso de una inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L251-L258), se recorren los parámetros y se mandan al dispositivo `meta`.<br/><br/>Los buffers del modelo, en cambio, se mueven de vuelta a GPU porque todas las capas los necesitan.</Note> La excepción son los buffers del modelo, como las tablas de RoPE que vimos antes: al ser pequeños y usarlos todas las capas, se quedan permanentemente en la GPU.
+Antes de empezar el recorrido, el proceso de inferencia se asegura de que el modelo arranca desde un estado limpio: todos los parámetros vuelven al dispositivo `meta` y la memoria de la tarjeta gráfica queda libre.<Note label="Contexto">Durante cada [paso de una inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L251-L258), se recorren los parámetros y se mandan al dispositivo `meta`.<br/><br/>Los buffers del modelo, en cambio, se mueven de vuelta a GPU porque todas las capas los necesitan.</Note> La excepción son los buffers del modelo, como las tablas de RoPE que vimos antes: al ser pequeños y usarlos todas las capas, se quedan permanentemente en la memoria.
 
 ### Atención causal
 
