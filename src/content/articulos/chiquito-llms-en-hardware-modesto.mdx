@@ -4,7 +4,7 @@ description: "Exploro la técnica de la inferencia capa por capa, con precarga e
 pubDate: 2026-04-12
 tags: ["LLM", "Python", "GPU", "AirLLM"]
 project: "Chiquito"
-projectUrl: "https://github.com/elcapo/chiquito"
+projectUrl: "https://github.com/estudio-hawara/chiquito"
 draft: false
 ---
 
@@ -94,11 +94,11 @@ with init_empty_weights():
 
 **Chiquito** se apoya en este mecanismo en tres momentos:
 
-- Al iniciarse, crea la estructura del modelo en el dispositivo meta para saber qué capas tiene y cuál es su tamaño.<Note label="Contexto">Al [crear el modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L196-L208) se usa el gestor de contexto de la librería Accelerate que permite cargar el modelo en el dispositivo `meta`.</Note>
+- Al iniciarse, crea la estructura del modelo en el dispositivo meta para saber qué capas tiene y cuál es su tamaño.<Note label="Contexto">Al [crear el modelo](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L196-L208) se usa el gestor de contexto de la librería Accelerate que permite cargar el modelo en el dispositivo `meta`.</Note>
 
-- Durante la inferencia, carga los pesos reales de cada capa en la tarjeta gráfica justo antes de ejecutarla.<Note label="Contexto">Justo antes de usar cada capa para [inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328) se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
+- Durante la inferencia, carga los pesos reales de cada capa en la tarjeta gráfica justo antes de ejecutarla.<Note label="Contexto">Justo antes de usar cada capa para [inferencia](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L318-L328) se usa otro método de la librería Accelerate para mover los pesos al dispositivo GPU.</Note>
 
-- Y, por último, una vez procesada cada capa, la devuelve al dispositivo meta dejando libre la memoria de la tarjeta gráfica.<Note label="Contexto">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria se [mueve el tensor al dispositivo meta](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
+- Y, por último, una vez procesada cada capa, la devuelve al dispositivo meta dejando libre la memoria de la tarjeta gráfica.<Note label="Contexto">Una vez se ha usado una capa para inferir y ya no es necesario mantenerla en memoria se [mueve el tensor al dispositivo meta](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L517-L518) liberando así la memoria.</Note>
 
 ## Carga desde HuggingFace
 
@@ -121,8 +121,8 @@ config = AutoConfig.from_pretrained(
 
 Esta operación es ligera porque descarga el archivo de configuración del modelo, sin descargar sus pesos. Chiquito usa la configuración en dos momentos clave:
 
-- Para contar las capas y construir una lista con sus nombres.<Note label="Contexto">Cuando se [carga la configuración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L167-L189), se crea el modelo en el dispositivo `meta` y se recorre el árbol de módulos para contar cuántas capas tiene.</Note>
-- Para detectar la arquitectura del modelo y saber qué clase instanciar.<Note label="Contexto">El campo `config.architectures[0]` se usa para [seleccionar automáticamente la clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/auto_model.py#L34) de modelo correcta.</Note>
+- Para contar las capas y construir una lista con sus nombres.<Note label="Contexto">Cuando se [carga la configuración](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L167-L189), se crea el modelo en el dispositivo `meta` y se recorre el árbol de módulos para contar cuántas capas tiene.</Note>
+- Para detectar la arquitectura del modelo y saber qué clase instanciar.<Note label="Contexto">El campo `config.architectures[0]` se usa para [seleccionar automáticamente la clase](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/auto_model.py#L34) de modelo correcta.</Note>
 
 Pero hay una pieza que va antes que el modelo: el tokenizador.
 
@@ -132,7 +132,7 @@ Los modelos no trabajan con texto sino con secuencias de números enteros. **Y e
 
 <TokenizerEmulator defaultText="No tengas miedo a probar cosas nuevas" showEmbeddings={false} />
 
-Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas del modelo. Una vez convertido el texto en identificadores, necesitamos los pesos del modelo para procesarlos. Y esos pesos duermen en archivos.
+Chiquito carga el tokenizador una sola vez durante la inicialización<Note label="Contexto">Al iniciarse, Chiquito [carga el tokenizador](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L150-L152) y lo deja accesible como `model.tokenizer`.</Note> y lo expone para que puedas codificar tus prompts y decodificar las salidas del modelo. Una vez convertido el texto en identificadores, necesitamos los pesos del modelo para procesarlos. Y esos pesos duermen en archivos.
 
 ### Los archivos safetensors
 
@@ -149,7 +149,7 @@ Hay modelos pequeños que caben en un único archivo pero los modelos grandes se
 | `model.layers.31.mlp.up_proj.weight` | model-00004-of-00004.safetensors |
 | `lm_head.weight` | model-00004-of-00004.safetensors |
 
-Este mapa de pesos es lo que hace posible la carga selectiva de modelos grandes: podemos saber en qué fragmento están los parámetros de cada capa sin tener que cargar el modelo entero. Chiquito usa este mapa para decidir qué archivos necesita en cada momento.<Note label="Contexto">La primera vez que Chiquito [carga un modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas.<br/><br/>Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
+Este mapa de pesos es lo que hace posible la carga selectiva de modelos grandes: podemos saber en qué fragmento están los parámetros de cada capa sin tener que cargar el modelo entero. Chiquito usa este mapa para decidir qué archivos necesita en cada momento.<Note label="Contexto">La primera vez que Chiquito [carga un modelo](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/splitter.py#L44-L53), usa este mapa para crear nuevos ficheros Safetensors organizados por capas.<br/><br/>Si el modelo tiene un solo archivo de pesos, no se necesita mapa para dividirlo.</Note>
 
 ### Descarga desde el Hub
 
@@ -165,7 +165,7 @@ cache_path = huggingface_hub.snapshot_download(
 )
 ```
 
-La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en la que los descargó. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada.<Note label="Contexto">Durante la carga del modelo, Chiquito [intenta usar la ruta como directorio local](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de descargarlo.</Note>
+La primera vez que llamas al método los pesos del modelo se descargan a una caché local y el método devuelve la ruta en la que los descargó. Las siguientes llamadas devuelven la misma ruta sin volver a descargar nada.<Note label="Contexto">Durante la carga del modelo, Chiquito [intenta usar la ruta como directorio local](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/utils.py#L33-L45) antes de descargarlo.</Note>
 
 Con todo esto claro, ya tenemos el contexto necesario para entender cómo Chiquito orquesta la carga capa por capa durante la inferencia.
 
@@ -215,11 +215,11 @@ Los modelos de HuggingFace siguen un esquema de nombres consistente. Para los mo
 | Normalización final | `model.norm` |
 | LM head | `lm_head` |
 
-Estos nombres son los que aparecen como prefijos en el mapa de pesos del modelo.<Note label="Contexto">Chiquito define los nombres como [una variable de clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L99-L104) para poder adaptarlos fácilmente a arquitecturas que usan otra convención.</Note>
+Estos nombres son los que aparecen como prefijos en el mapa de pesos del modelo.<Note label="Contexto">Chiquito define los nombres como [una variable de clase](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L99-L104) para poder adaptarlos fácilmente a arquitecturas que usan otra convención.</Note>
 
 ### Recorrer el árbol de módulos
 
-Una vez creado el modelo sobre el dispositivo meta, teniendo en cuenta que tenemos los nombres de cada uno de sus módulos, podemos recorrerlo en un bucle de principio a fin: <Note label="Contexto">Chiquito usa este mecanismo para construir, al [arrancar](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292), una lista ordenada con todos los bloques del modelo.</Note>
+Una vez creado el modelo sobre el dispositivo meta, teniendo en cuenta que tenemos los nombres de cada uno de sus módulos, podemos recorrerlo en un bucle de principio a fin: <Note label="Contexto">Chiquito usa este mecanismo para construir, al [arrancar](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L260-L292), una lista ordenada con todos los bloques del modelo.</Note>
 
 ```python
 # Modelos tipo Llama
@@ -245,7 +245,7 @@ Para un transformer, una frase como *"el gato se sentó en la alfombra"* es indi
 
 La mayoría de los modelos modernos resuelven esto con las Rotary Position Embeddings (RoPE),<Note label="Definición">RoPE codifica la posición aplicando pequeñas rotaciones a los vectores internos del modelo. Para lo que nos ocupa, basta con saber que es un ingrediente extra que las capas reciben junto a los tokens.</Note> una forma de representar el número de posición de cada token para que las capas transformer puedan usarlo al procesarlos.
 
-Lo relevante para Chiquito es algo mucho más práctico: estas posiciones se calculan una sola vez al principio de cada inferencia y se reutilizan en todas las capas. Además, el módulo que las calcula no es un parámetro entrenado del modelo sino una tabla derivada de la configuración, así que cabe siempre en memoria y no necesita cargarse y descargarse capa por capa como el resto de los pesos.<Note label="Contexto">Chiquito [calcula las embeddings posicionales](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L340-L346) una vez al principio de cada paso de inferencia y las reutiliza en todas las capas.</Note>
+Lo relevante para Chiquito es algo mucho más práctico: estas posiciones se calculan una sola vez al principio de cada inferencia y se reutilizan en todas las capas. Además, el módulo que las calcula no es un parámetro entrenado del modelo sino una tabla derivada de la configuración, así que cabe siempre en memoria y no necesita cargarse y descargarse capa por capa como el resto de los pesos.<Note label="Contexto">Chiquito [calcula las embeddings posicionales](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L340-L346) una vez al principio de cada paso de inferencia y las reutiliza en todas las capas.</Note>
 
 Con los cuatro bloques identificados, los nombres mapeados y las posiciones resueltas, Chiquito ya tiene todo lo que necesita para iterar el modelo de principio a fin cargando pesos bajo demanda.
 
@@ -253,7 +253,7 @@ Con los cuatro bloques identificados, los nombres mapeados y las posiciones resu
 
 Hasta aquí ya sabemos que HuggingFace guarda los pesos en uno o varios archivos safetensors y que el mapa de pesos nos dice dónde vive cada tensor. El problema es que **los pesos de una misma capa pueden estar repartidos entre varios fragmentos** y que cada fragmento, a su vez, mezcla pesos de capas distintas. Si para usar una capa tuviéramos que abrir el fragmento que la contiene y descartar todo lo demás, estaríamos leyendo cientos de megas sobrantes cada vez que pasáramos por esa capa.
 
-Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar sus pesos en un formato que le resulte cómodo: crea un directorio nuevo y **escribe dentro un archivo Safetensors por cada capa del transformer**.<Note label="Contexto">La lógica de esta partición de modelos vive en [`splitter.py`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py).</Note> Así, durante la ejecución del modelo, cargar una capa concreta es abrir un único archivo con solo los pesos que esa capa necesita y ninguno de más.
+Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar sus pesos en un formato que le resulte cómodo: crea un directorio nuevo y **escribe dentro un archivo Safetensors por cada capa del transformer**.<Note label="Contexto">La lógica de esta partición de modelos vive en [`splitter.py`](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/splitter.py).</Note> Así, durante la ejecución del modelo, cargar una capa concreta es abrir un único archivo con solo los pesos que esa capa necesita y ninguno de más.
 
 > La partición es un coste que se paga una sola vez. La primera vez que Chiquito procesa un modelo nuevo lleva un rato, porque tiene que leer todos los fragmentos originales y escribir los nuevos por capas. Las siguientes veces detecta que ya está hecho y se salta el paso entero.
 
@@ -261,7 +261,7 @@ Lo que Chiquito hace, la primera vez que trabaja con un modelo, es reorganizar s
 
 Hay un detalle del proceso que parece innecesario pero que tiene una motivación muy concreta. Después de escribir cada archivo Safetensors, Chiquito crea junto a él un segundo archivo vacío con el mismo nombre y la extensión `.done`.
 
-Esto se hace porque escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad de la escritura, lo que queda en disco es un archivo incompleto: existe, pero es inservible. **El archivo marcador se crea justo después de que la escritura haya terminado sin problemas**, así que su presencia indica que el archivo de esa capa está íntegro.<Note label="Contexto">Si Chiquito se relanza después de una interrupción, [comprueba el directorio de partición](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/splitter.py#L17-L22) y solo vuelve a procesar las capas cuyo `.done` no aparece. Las demás se asumen correctas y no se tocan.</Note>
+Esto se hace porque escribir un archivo grande lleva tiempo y si el proceso se interrumpe en mitad de la escritura, lo que queda en disco es un archivo incompleto: existe, pero es inservible. **El archivo marcador se crea justo después de que la escritura haya terminado sin problemas**, así que su presencia indica que el archivo de esa capa está íntegro.<Note label="Contexto">Si Chiquito se relanza después de una interrupción, [comprueba el directorio de partición](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/splitter.py#L17-L22) y solo vuelve a procesar las capas cuyo `.done` no aparece. Las demás se asumen correctas y no se tocan.</Note>
 
 <CheckpointSplitter
     weightMap={{
@@ -292,7 +292,7 @@ Esto se hace porque escribir un archivo grande lleva tiempo y si el proceso se i
 
 ## Inferencia por capas
 
-Con el modelo ya repartido en archivos por capas llega la pieza que hace que todo lo anterior tenga sentido: ejecutar el modelo iterativamente capa por capa. Cada vez que el modelo tiene que predecir un token nuevo, el *prompt* tiene que pasar por todo el modelo. Este proceso se llama inferencia.<Note label="Contexto">De la implementación completa de la inferencia se encarga la clase [`ChiquitoModel`](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L413-L531).</Note>
+Con el modelo ya repartido en archivos por capas llega la pieza que hace que todo lo anterior tenga sentido: ejecutar el modelo iterativamente capa por capa. Cada vez que el modelo tiene que predecir un token nuevo, el *prompt* tiene que pasar por todo el modelo. Este proceso se llama inferencia.<Note label="Contexto">De la implementación completa de la inferencia se encarga la clase [`ChiquitoModel`](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L413-L531).</Note>
 
 El problema ya lo conocemos: no caben todos los pesos a la vez en la memoria de la tarjeta gráfica. Lo que hace Chiquito es convertir esa única llamada en una secuencia de pequeñas cargas y descargas: **para cada bloque del modelo carga sus pesos en la tarjeta gráfica, lo ejecuta y los libera antes de pasar al siguiente**.
 
@@ -302,13 +302,13 @@ El resultado es que, en cualquier instante, la memoria de la tarjeta gráfica s�
 
 > Generar un texto no es un proceso por lotes: el ciclo `cargar` → `ejecutar` → `liberar` se repite entero por cada token que se quiere generar. Generar 20 tokens implica recorrer el modelo 20 veces, con todas sus cargas y descargas.
 
-Antes de empezar el recorrido, el proceso de inferencia se asegura de que el modelo arranca desde un estado limpio: todos los parámetros vuelven al dispositivo `meta` y la memoria de la tarjeta gráfica queda libre.<Note label="Contexto">Durante cada [paso de una inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L251-L258), se recorren los parámetros y se mandan al dispositivo `meta`.<br/><br/>Los buffers del modelo, en cambio, se mueven de vuelta a GPU porque todas las capas los necesitan.</Note> La excepción son los buffers del modelo, como las tablas de RoPE que vimos antes: al ser pequeños y usarlos todas las capas, se quedan permanentemente en la memoria.
+Antes de empezar el recorrido, el proceso de inferencia se asegura de que el modelo arranca desde un estado limpio: todos los parámetros vuelven al dispositivo `meta` y la memoria de la tarjeta gráfica queda libre.<Note label="Contexto">Durante cada [paso de una inferencia](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L251-L258), se recorren los parámetros y se mandan al dispositivo `meta`.<br/><br/>Los buffers del modelo, en cambio, se mueven de vuelta a GPU porque todas las capas los necesitan.</Note> La excepción son los buffers del modelo, como las tablas de RoPE que vimos antes: al ser pequeños y usarlos todas las capas, se quedan permanentemente en la memoria.
 
 ### Atención causal
 
 La forma más sencilla de imaginarse la generación de texto es metiendo los tokens del prompt en el modelo uno a uno: el primero entra solo, el segundo ve al primero, el tercero ve a los dos anteriores, y así hasta el final. Funcionaría, pero sería terriblemente lento.
 
-Lo que se hace en la práctica es meter el prompt entero de golpe y, dentro de cada capa transformer, dejar que la autoatención mire todos los tokens a la vez. Para que el resultado sea idéntico al del recorrido secuencial, hace falta una **máscara causal**: una matriz de verdadero y falso que le dice a la autoatención qué pares de tokens pueden mirarse, de forma que cada uno sólo ve a los anteriores y a sí mismo.<Note label="Contexto">La [máscara triangular](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L451-L453) sigue esta lógica: si la celda `(i, j)` es verdadera, el token de la posición `i` puede atender al de la posición `j`, si es falsa no.</Note>
+Lo que se hace en la práctica es meter el prompt entero de golpe y, dentro de cada capa transformer, dejar que la autoatención mire todos los tokens a la vez. Para que el resultado sea idéntico al del recorrido secuencial, hace falta una **máscara causal**: una matriz de verdadero y falso que le dice a la autoatención qué pares de tokens pueden mirarse, de forma que cada uno sólo ve a los anteriores y a sí mismo.<Note label="Contexto">La [máscara triangular](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L451-L453) sigue esta lógica: si la celda `(i, j)` es verdadera, el token de la posición `i` puede atender al de la posición `j`, si es falsa no.</Note>
 
 Esta misma idea se aplica a las dos fases en las que se divide la inferencia, conocidas por convención como **prefill** y **decode**:
 
@@ -331,7 +331,7 @@ Con 67 capas y 20 tokens por generar son más de 1.000 lecturas de disco por res
 
 ### Precargar el modelo entero
 
-En el modo más agresivo, Chiquito vuelca al arrancar todas las capas del modelo a una caché local en RAM. A partir de ese momento la función que carga pesos a CPU deja de tocar el disco.<Note label="Contexto">La carga en bloque ocurre durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) y el [despacho posterior](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L311-L316) devuelve el diccionario ya preparado sin tocar el disco.</Note>
+En el modo más agresivo, Chiquito vuelca al arrancar todas las capas del modelo a una caché local en RAM. A partir de ese momento la función que carga pesos a CPU deja de tocar el disco.<Note label="Contexto">La carga en bloque ocurre durante la [inicialización del modelo](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L294-L301) y el [despacho posterior](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L311-L316) devuelve el diccionario ya preparado sin tocar el disco.</Note>
 
 Es el modo más rápido porque elimina las lecturas de disco durante el bucle de inferencia. A cambio, **el modelo entero tiene que caber en RAM**: un modelo de 32B en fp16 pide unos 65 GB solo para los pesos.
 
@@ -339,22 +339,22 @@ Es el modo más rápido porque elimina las lecturas de disco durante el bucle de
 
 En el otro extremo, si la RAM es muy escasa se puede saltar la caché y leer cada capa desde disco cada vez que el bucle la necesita. Es lo más lento pero funciona con prácticamente cualquier configuración: en RAM solo hay una capa a la vez.
 
-Aun así, este modo no es tan ingenuo como parece. Mientras la GPU ejecuta la capa *N*, un hilo de fondo ya está leyendo la capa *N+1* desde disco.<Note label="Contexto">El bucle de inferencia lanza un [hilo con un solo trabajador](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L468-L475) y, [al final de cada iteración](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L484-L491), le pide que vaya trayendo la siguiente capa en paralelo con la ejecución actual.</Note> Es una precarga de un único paso por delante, suficiente para que, si la ejecución de una capa tarda más que leer la siguiente, el coste del disco desaparezca casi por completo.
+Aun así, este modo no es tan ingenuo como parece. Mientras la GPU ejecuta la capa *N*, un hilo de fondo ya está leyendo la capa *N+1* desde disco.<Note label="Contexto">El bucle de inferencia lanza un [hilo con un solo trabajador](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L468-L475) y, [al final de cada iteración](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L484-L491), le pide que vaya trayendo la siguiente capa en paralelo con la ejecución actual.</Note> Es una precarga de un único paso por delante, suficiente para que, si la ejecución de una capa tarda más que leer la siguiente, el coste del disco desaparezca casi por completo.
 
 ### La ventana deslizante
 
-El punto intermedio es el más interesante y donde Chiquito aplica un patrón clásico de concurrencia. Cuando tienes RAM libre pero no suficiente para el modelo entero, puedes mantener solo *N* capas en memoria al mismo tiempo y dejar que un hilo de fondo reponga la ventana a medida que el bucle de inferencia la vacía por la cola.<Note label="Contexto">Toda la lógica vive en una [clase](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L27-L94), que sincroniza productor y consumidor.</Note>
+El punto intermedio es el más interesante y donde Chiquito aplica un patrón clásico de concurrencia. Cuando tienes RAM libre pero no suficiente para el modelo entero, puedes mantener solo *N* capas en memoria al mismo tiempo y dejar que un hilo de fondo reponga la ventana a medida que el bucle de inferencia la vacía por la cola.<Note label="Contexto">Toda la lógica vive en una [clase](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L27-L94), que sincroniza productor y consumidor.</Note>
 
 Esto se conoce como **patrón productor-consumidor**:
 
 - el **consumidor** es el bucle de inferencia, que coge una capa, la ejecuta y la suelta en cuanto termina;
 - el **productor** es un hilo de fondo que, cada vez que se libera un hueco, lo aprovecha para cargar la siguiente capa pendiente.
 
-Antes de arrancar el recorrido propiamente dicho, Chiquito precarga las *N* primeras capas de forma síncrona.<Note label="Contexto">Cuando [empieza la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L47-L58), se llena la ventana inicial antes de lanzar el hilo de fondo, garantizando que cuando se procese la primera capa los pesos ya estarán disponibles.</Note> Solo cuando la ventana está llena echa a andar el hilo productor y cede el control al bucle de inferencia.
+Antes de arrancar el recorrido propiamente dicho, Chiquito precarga las *N* primeras capas de forma síncrona.<Note label="Contexto">Cuando [empieza la inferencia](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L47-L58), se llena la ventana inicial antes de lanzar el hilo de fondo, garantizando que cuando se procese la primera capa los pesos ya estarán disponibles.</Note> Solo cuando la ventana está llena echa a andar el hilo productor y cede el control al bucle de inferencia.
 
 <SlidingWindowCache title="Ventana deslizante simulada sobre un modelo de 8 capas" />
 
-> Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Contexto">La [carga de una capa](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. <br/><br/>Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda.<br/><br/>Cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
+> Hay un detalle técnico pequeño pero crítico en el hilo de fondo: **la lectura del archivo se hace fuera del bloqueo**.<Note label="Contexto">La [carga de una capa](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L78-L94) sólo bloquea para comprobar cuántos huecos hay libres y elegir la siguiente capa a cargar. <br/><br/>Una vez decidido, termina el bloqueo e inicia la carga de la capa que corresponda.<br/><br/>Cuando el tensor ya está en memoria vuelve a bloquear por un instante para escribirlo en el diccionario de la caché y despertar al consumidor.</Note> De otra forma el consumidor se bloquearía durante cada lectura de disco y toda la gracia de tener un hilo de fondo se perdería.
 
 ## Cuantización
 
@@ -362,7 +362,7 @@ Hasta aquí todas las optimizaciones han sido sobre cuándo y dónde guardar los
 
 Chiquito no aporta nada original aquí: se apoya en **bitsandbytes**, que es la librería estándar para esto.<Note label="Definición">[bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) es una librería que ofrece dos modos de cuantización al vuelo: **8 bits** y **4 bits** y se encarga de sustituir las capas lineales del modelo por variantes cuantizadas que convierten el tensor en el momento en que se mueve a GPU.</Note>
 
-> La aritmética es la que cabría esperar. En fp16 cada parámetro ocupa 2 bytes; en 8 bits, 1 byte; en 4 bits, medio byte. **Pasar a 4 bits reduce cuatro veces el coste de transferencia**, que es el que manda.<Note label="Cuantización">Durante la [inicialización del modelo](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L211-L237), si el usuario pide cuantización, se crea un `BitsAndBytesConfig` y se deja que `bitsandbytes` reemplace las capas lineales.</Note>
+> La aritmética es la que cabría esperar. En fp16 cada parámetro ocupa 2 bytes; en 8 bits, 1 byte; en 4 bits, medio byte. **Pasar a 4 bits reduce cuatro veces el coste de transferencia**, que es el que manda.<Note label="Cuantización">Durante la [inicialización del modelo](https://github.com/estudio-hawara/chiquito/blob/0.1.0/src/chiquito/model.py#L211-L237), si el usuario pide cuantización, se crea un `BitsAndBytesConfig` y se deja que `bitsandbytes` reemplace las capas lineales.</Note>
 
 ### Tamaño por capa
 
@@ -386,42 +386,16 @@ Esta tabla informa sobre lo que decide si una máquina concreta puede siquiera a
 
 ## Mezcla de expertos
 
-Hasta aquí hemos dado por supuesto que todas las capas del modelo son iguales y que cada token pasa por ellas entero. Sin embargo, los modelos de "mezcla de expertos" (MoE) rompen esa simetría: dentro de cada capa, la red prealimentada se sustituye por muchas pequeñas redes de "expertos" y un enrutador ligero decide cuáles activar para cada token.<Note label="Definición">Un modelo como Qwen3.5-MoE tiene 128 expertos por capa pero en cada paso solo activa unos pocos. El resto permanece inactivo durante ese token.</Note>
+Hasta aquí hemos dado por supuesto que todas las capas del modelo son iguales y que cada token pasa por ellas entero. Los modelos de "mezcla de expertos" (MoE) rompen esa simetría: dentro de cada capa, la red prealimentada se sustituye por muchas pequeñas redes de "expertos" y un enrutador ligero decide cuáles activar para cada token.<Note label="Definición">Un modelo como Qwen3.5-MoE tiene 128 expertos por capa pero en cada paso solo activa unos pocos. El resto permanece inactivo durante ese token.</Note>
 
-La consecuencia es que el modelo puede tener muchos más parámetros totales sin que aumente en la misma proporción el coste de cómputo por token. Pero para una ejecución capa por capa como la de Chiquito aparecen dos problemas nuevos que no tenían los modelos densos.
-
-### Tensores fusionados
-
-Para ahorrar espacio, **HuggingFace no guarda los pesos de los expertos por separado**: los fusiona en un único tensor tridimensional de forma `(num_experts, out_features, in_features)`. En Qwen3.5-MoE, con 128 expertos por capa, cada tensor fusionado ocupa cerca de 5 GB en fp16.
-
-Esto rompe los supuestos de la cuantización que vimos antes: la pieza que recibe `bitsandbytes` ya no es la matriz 2D de una capa lineal y, si se dequantiza entero, no cabe ni siquiera en GPUs generosas.
-
-### El problema de la nomenclatura
-
-La primera sorpresa aparece incluso antes de cuantizar. En los modelos MoE y en otros modelos compuestos, como los multimodales, **los pesos viven en disco bajo un prefijo distinto del que usa el objeto de PyTorch** en memoria: en el archivo cuelgan de `model.language_model.*` pero en el modelo que construye `accelerate` cuelgan directamente de `model.*`.
-
-Chiquito resuelve esto con una subclase, `ChiquitoCompositeModel`, que mantiene **dos tablas de nombres en paralelo**: una para el splitter, que trabaja con los nombres en disco; y otra para recorrer el árbol de módulos, que usa los nombres del objeto.<Note label="Contexto">La [subclase](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/composite_model.py#L27-L43) declara dos diccionarios con los prefijos en disco y en objeto respectivamente.</Note> Cada vez que se cargan pesos desde un archivo, las claves se traducen de una convención a la otra antes de moverse a GPU.<Note label="Contexto">El renombrado se hace [justo después de leer una capa](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/composite_model.py#L95-L106).</Note>
-
-### Dequantización "perezosa"
-
-El segundo problema —el tamaño del tensor fusionado— necesita algo más imaginativo. Si al cargar una capa MoE dequantizamos los 128 expertos a fp16, la VRAM estalla. Y lo irónico es que **en la mayoría de los pasos el enrutador solo activa un puñado de expertos**, así que todo lo demás estaría dequantizado para nada.
-
-La solución es dejar los datos empaquetados en 4 bits en GPU y dequantizar un experto a la vez, sólo cuando el enrutador lo pide. Chiquito lo implementa con la "decuantización perezosa",<Note label="Contexto">Vive en la clase [`LazyDequantExperts`](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/lazy_experts.py).</Note> un envoltorio que se comporta como un tensor 3D a efectos de indexación pero que por dentro guarda los pesos empaquetados y dequantiza una sección sólo cuando alguien se la pide.
-
-El truco está en que la implementación "eager" del MoE de HuggingFace accede a los expertos uno a uno, por índice escalar. Chiquito usa el método mágico el `__getitem__` para disparar la dequantización. Cada llamada devuelve una matriz lista para la multiplicación, sin haber tocado a los expertos que ese token no usa.
+Esto le da a Chiquito un margen interesante: si solo se usan unos pocos expertos por token, no hace falta tener todos descomprimidos en memoria a la vez. En su lugar, se dejan los pesos cuantizados en la memoria de la tarjeta gráfica y se descomprime un experto sólo cuando el enrutador lo pide.<Note label="Contexto">Vive en la clase [`LazyDequantExperts`](https://github.com/estudio-hawara/chiquito/blob/0.2.0/src/chiquito/lazy_experts.py).</Note>
 
 | Estrategia | VRAM |
 | :--- | :--- |
-| Dequantizar todos los pesos | ~4.8 GB |
-| Empaquetado 4 bits + dequantizar bajo demanda | ~1.2 GB + ~37 MB por experto activo |
+| Descomprimir todos los pesos | ~4.8 GB |
+| Empaquetado 4 bits + descomprimir bajo demanda | ~1.2 GB + ~37 MB por experto activo |
 
-### Partir tensores tridimensionales
-
-El splitter que vimos antes se diseñó para capas lineales clásicas, con pesos de forma `(out_features, in_features)`. Los tensores fusionados añaden una dimensión al principio, así que Chiquito los aplana a 2D antes de pasarlos a `bitsandbytes`, cuantiza el resultado y guarda la forma original en una entrada aparte.<Note label="Contexto">Al cuantizar, el splitter considera como caso especial los [tensores con más de dos dimensiones](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/splitter.py#L82-L106).</Note> Ese metadato es lo que, al cargar la capa, permite al envoltorio perezoso saber cuántos expertos hay y qué dimensiones tiene cada uno.
-
-### Activación automática
-
-Todas estas piezas se activan solas cuando Chiquito encuentra un modelo MoE compatible. Al inicializarse, se registra la arquitectura `Qwen3.5 Moe`<Note label="Contexto">La [línea de registro](https://github.com/elcapo/chiquito/blob/0.2.0/src/chiquito/__init__.py#L5) aprovecha la misma fábrica `AutoModel` que se usa para los modelos densos.</Note>. La fábrica `AutoModel` hace el resto: detecta la arquitectura en `config.json`, instancia la subclase correcta y el usuario recibe un modelo que se comporta igual que los demás.
+Con este truco activado, el resto de Chiquito —partición por capas, bucle de inferencia, ventana deslizante— no nota la diferencia. La fábrica `AutoModel` detecta la arquitectura en `config.json` y devuelve un modelo que se comporta igual que los demás.
 
 ```python
 from chiquito import AutoModel
@@ -432,23 +406,17 @@ model = AutoModel.from_pretrained(
 )
 ```
 
-Ni la partición por capas, ni el bucle de inferencia, ni la ventana deslizante notan la diferencia: el modelo se carga, se parte, se cuantiza y se ejecuta con el mismo protocolo que un modelo denso, solo con dos piezas extra que se activan en silencio cuando aparecen tensores fusionados.
-
 ## Conclusiones
 
-Como hemos visto, se puede cargar un modelo que no cabe en la VRAM de una GPU doméstica. Pero al precio de aceptar que la inferencia tardará mucho más: los ~30 minutos que cuestan 20 tokens con un modelo de 32B sin cuantizar en 8 GB de VRAM no son un error de implementación, son el coste real de mover los pesos a la VRAM una y otra vez. **Chiquito no es una optimización para producción, es una herramienta para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
+Como hemos visto, se puede cargar un modelo que no cabe en la memoria de una tarjeta gráfica doméstica. Pero al precio de aceptar que la inferencia tardará mucho más. **Chiquito no es una optimización para producción, es una herramienta para examinar modelos por dentro** en una máquina que, sobre el papel, no debería poder ejecutarlos.
 
-Lo interesante es que las piezas que hacen esto posible son sorprendentemente clásicas:
+Lo interesante es que las piezas que hacen esto posible no son precisamente innovadoras:
 
-- La inferencia capa por capa es una aplicación directa del patrón de jerarquía de memoria: si el nivel rápido no cabe, despachas en bloques.
+- La inferencia capa por capa es una aplicación directa del patrón de jerarquía de memoria.
 - La ventana deslizante es un productor-consumidor de manual con bloqueo.
-- La cuantización es tamaño contra precisión, delegada en una librería estándar.
-- La decuantización en mezclas de expertos es perezosa para decuantizar solo lo que se va a usar.
+- La cuantización es una reducción de la precisión en busca de eficiencia.
+- En las mezclas de expertos, los pesos se descomprimen sólo cuando el enrutador los pide en un patrón de trabajador perezoso.
 
-Ninguna de las ideas es nueva y esa es precisamente la gracia: con piezas conocidas bien combinadas se puede hacer caber lo que no cabe, siempre que aceptes el sacrificio en rendimiento.
+Ninguna de las ideas es nueva y esa es precisamente la gracia: con piezas conocidas bien combinadas se puede hacer que donde comen dos, coman tres. ¡Te das Qwen!
 
-Si has llegado hasta aquí con ganas de jugar, clona Chiquito,<Note label="Contexto">Puedes encontrar las fuentes de **Chiquito** en [elcapo/chiquito](https://github.com/elcapo/chiquito).</Note> apúntalo a un modelo que no te quepa en la GPU y échale paciencia.
-
-> Ahora ya sabes por qué se llama Chiquito.
->
-> ¡Te das Qwen!
+> Si has llegado hasta aquí con ganas de jugar, clona Chiquito,<Note label="Contexto">Puedes encontrar las fuentes de **Chiquito** en [elcapo/chiquito](https://github.com/estudio-hawara/chiquito).</Note> apúntalo a un modelo que no te quepa en la GPU y échale paciencia.
