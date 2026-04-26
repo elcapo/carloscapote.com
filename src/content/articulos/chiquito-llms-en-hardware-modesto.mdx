@@ -306,20 +306,20 @@ Antes de empezar el recorrido, el proceso de inferencia se asegura de que el mod
 
 ### Atención causal
 
-Un transformer mira todos los tokens de la secuencia a la vez durante la autoatención y, por defecto, cada token puede atender a todos los demás. Para un modelo que genera texto de izquierda a derecha eso es un problema: al predecir qué palabra debería venir después de la tercera no podemos dejar que el modelo "haga trampa" mirando la cuarta, la quinta y la sexta.
+Dentro de cada capa transformer, la autoatención **mira todos los tokens de la secuencia a la vez** y, por defecto, cada uno puede fijarse en todos los demás —los anteriores, los posteriores y él mismo— para construir su estado oculto. Para un modelo que genera texto de izquierda a derecha eso es un problema: al predecir qué token debería venir después del tercero no podemos dejar que el modelo "haga trampa" mirando el cuarto, el quinto y el sexto.
 
-Para evitarlo se usa una "máscara causal" que le dice a la atención qué pares de tokens pueden mirarse. Esa máscara es una matriz que solo contiene los valores verdadero y falso. <Note label="Contexto">La [máscara triangular](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L451-L453) sigue esta lógica: si la celda `(i, j)` es verdadera, el token de la posición `i` puede atender al de la posición `j`, si es falsa no.</Note>
+Para evitarlo se usa una **máscara causal**: una matriz de verdadero y falso que le dice a la autoatención qué pares de tokens pueden mirarse.<Note label="Contexto">La [máscara triangular](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L451-L453) sigue esta lógica: si la celda `(i, j)` es verdadera, el token de la posición `i` puede atender al de la posición `j`, si es falsa no.</Note>
 
-Pero hay un matiz: la inferencia del modelo no siempre se ejecuta igual. Durante la generación de una respuesta, la inferencia se dispara de dos maneras distintas que se conocen, por convención, como **prefill** y **decode**:
+Pero hay un matiz: la inferencia del modelo no siempre se ejecuta igual. Durante la generación de una respuesta se dispara de dos maneras distintas que se conocen, por convención, como **prefill** y **decode**:
 
-- **Prefill** es la primera llamada. El modelo recibe todo el prompt de golpe y calcula las representaciones internas de cada uno de sus tokens. La máscara es triangular: cada token ve sólo los anteriores y a sí mismo.
-- **Decode** son las llamadas siguientes, una por cada token generado. El modelo recibe **un único token nuevo** —el último que se ha producido— que atiende a todo lo que ya hay en la caché. La máscara se reduce a una sola fila.
+- **Prefill** es la primera llamada. El modelo recibe todo el prompt de golpe y calcula los estados ocultos de cada uno de sus tokens. La máscara es triangular: cada token ve sólo los anteriores y a sí mismo.
+- **Decode** son las llamadas siguientes, una por cada token generado. El modelo recibe **un único token nuevo** —el último que se ha producido— y, en lugar de volver a procesar todos los anteriores, los lee de una pequeña caché que cada capa ha ido rellenando paso a paso.<Note label="Definición">Esta caché —conocida como *caché KV*— guarda, dentro de cada capa, los vectores intermedios que la autoatención calculó al ver cada token. Sin ella, decode tendría que reprocesar el prompt entero en cada paso.</Note> La máscara, en este caso, se reduce a una sola fila: la del token nuevo, que mira a todo lo anterior y a sí mismo.
 
 <AttentionMaskVisualizer />
 
-La máscara no es lo único que cambia entre prefill y decode. Los números de posición que RoPE usa para rotar los vectores internos, también son distintos: en prefill son la lista `[0, 1, ..., n-1]` con todas las posiciones del prompt; en decode son una única posición, la del token recién generado.<Note label="Contexto">Chiquito los calcula durante los [primeros pasos de la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L458-L461).</Note>
+La máscara no es lo único que cambia entre prefill y decode. Los números de posición que usa RoPE también son distintos: en prefill son la lista `[0, 1, ..., n-1]` con todas las posiciones del prompt; en decode son una única posición, la del token recién generado.<Note label="Contexto">Chiquito los calcula durante los [primeros pasos de la inferencia](https://github.com/elcapo/chiquito/blob/0.1.0/src/chiquito/model.py#L458-L461).</Note>
 
-Con la máscara preparada, los números de posición resueltos y el bucle de carga y descarga listo, ya tenemos todo lo que necesitamos para recorrer el modelo de principio a fin y devolver los logits de salida. Pero eso es sólo un token de los muchos que queremos generar: para producir una respuesta completa hay que ejecutar la inferencia una y otra vez y, entre llamada y llamada, decidir cuál de los tokens propuestos es el que se queda.
+Con la máscara preparada, los números de posición resueltos y el bucle de carga y descarga listo, ya tenemos todo lo que necesitamos para recorrer el modelo de principio a fin y obtener una puntuación por cada posible token siguiente. Pero eso sólo decide un token: para producir una respuesta completa hay que ejecutar la inferencia una y otra vez y, entre llamada y llamada, elegir cuál de los candidatos se queda.
 
 ## Gestión de la memoria
 
