@@ -48,6 +48,9 @@ b_o = zeros((output_size, 1))
 lr = learning_rate
 ```
 
+> En este artículo los fragmentos de código aparecen simplificados para facilitar su lectura. Si te animas a experimentar, el código completo con tests, evaluación y visualizaciones está en:
+> - [neural-network-from-scratch](https://github.com/elcapo/neural-network-from-scratch).
+
 Con la arquitectura de la red ya preparada, podemos empezar a implementar el paso de datos.
 
 ## Propagación hacia adelante
@@ -66,17 +69,19 @@ $$
 \mathbf{Z}_h = \mathbf{W}_h \mathbf{X} + \mathbf{b}_h
 $$
 
+```python
+Z_h = W_h @ X + b_h
+```
+
 donde:
 
 - $\mathbf{W}_h$ es la matriz de pesos de forma `(10, 784)`
 - $\mathbf{b}_h$ es el vector de sesgos de forma `(10, 1)`
 - $\mathbf{X}$ es la entrada de forma `(784, m)`
 
-El resultado $\mathbf{Z}_h$ tiene forma `(10, m)`. En código, una sola línea:
+El resultado $\mathbf{Z}_h$ tiene forma `(10, m)`.
 
-```python
-Z_h = W_h @ X + b_h
-```
+#### Activación ReLU
 
 Después aplicamos la activación ReLU, que devuelve cero para valores negativos y deja pasar los positivos sin cambios:
 
@@ -102,11 +107,13 @@ $$
 \mathbf{Z}_o = \mathbf{W}_o \mathbf{A}_h + \mathbf{b}_o
 $$
 
-donde $\mathbf{W}_o$ tiene forma `(10, 10)` y $\mathbf{b}_o$ tiene forma `(10, 1)`.
-
 ```python
 Z_o = W_o @ A_h + b_o
 ```
+
+donde $\mathbf{W}_o$ tiene forma `(10, 10)` y $\mathbf{b}_o$ tiene forma `(10, 1)`.
+
+#### Activación softmax
 
 Finalmente, la activación softmax convierte los valores en probabilidades que suman 1:
 
@@ -154,7 +161,9 @@ $$
 
 donde $y_i$ es la etiqueta real (codificada en one-hot) y $a_i$ es la probabilidad predicha.
 
-La intuición es clara: si el dígito verdadero es el 3, queremos que $a_3$ sea cercana a 1. El término $-\log(a_3)$ es exactamente eso: cuando $a_3 \to 1$ la pérdida va a 0; cuando $a_3 \to 0$ explota.
+> Si el dígito verdadero es el 3, queremos que $a_3$ sea cercana a 1. El término $-\log(a_3)$ es exactamente eso:
+> - cuando $a_3 \to 1$ la pérdida va a 0,
+> - cuando $a_3 \to 0$ explota.
 
 ### Capa de salida
 
@@ -303,5 +312,3 @@ Lo que hemos visto es la versión más simple. Hay muchas cosas que se pueden me
 - **Convoluciones**: para imágenes, las capas convolucionales funcionan mejor que las densas.
 
 Pero la base es esta. Si entiendes esto, entiendes el núcleo de lo que hacen PyTorch y TensorFlow bajo el capó.
-
-> PD: Si te animas a experimentar, el código completo con tests, evaluación y visualizaciones está en [neural-network-from-scratch](https://github.com/elcapo/neural-network-from-scratch). Y si quieres ver la matemática en detalle, hay un documento dedicado a las derivadas de softmax.
