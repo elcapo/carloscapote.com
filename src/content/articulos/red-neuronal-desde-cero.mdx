@@ -8,50 +8,47 @@ draft: false
 ---
 
 import Note from '../../components/Note.astro';
+import Arquitectura from '../../components/red-neuronal/Arquitectura.astro';
 
-La mayoría de nosotros usamos redes neuronales como quien usa una calculadora: funcionar, funciona, pero no preguntes cómo. Si alguna vez te has parado a pensar en qué ocurre dentro —qué operaciones transforman tus datos en una predicción— las cosas se ponen interesantes.
+La mayoría de nosotros usamos redes neuronales como quien usa una calculadora: sabemos hacerlas funcionar pero no tenemos ni idea de cómo funcionan. Si alguna vez te has parado a pensar en qué ocurre dentro —qué operaciones transforman datos en predicciones— la cosa se pone interesante.
 
-En este artículo voy a desmontar una red neuronal desde cero. Sin Keras, sin PyTorch, sin TensorFlow. Solo Python, NumPy y la matemática que lo hace posible. El objetivo no es implementar algo que compita con las librerías modernas, sino entender la mecánica interna: cómo una red "aprende" ajustando pesos y sesgos.
+En este artículo voy a montar una red neuronal desde cero.<Note label="Contexto">No usaremos _frameworks_, ni librerías (ni Keras, ni PyTorch, ni TensorFlow) más allá de las herramientas del propio Python y NumPy.</Note> El objetivo no es implementar algo que compita con las librerías modernas sino entender la mecánica interna de una red neuronal: cómo "aprende" ajustando sus propios sesgos y pesos.
 
 ## El problema: reconocer dígitos
 
-Para tener algo concreto que resolver, usaremos el ejemplo clásico: el dataset MNIST. Son imágenes de 28 × 28 píxeles con dígitos escritos a mano, del 0 al 9.<Note label="Dataset">MNIST contiene 60.000 imágenes de entrenamiento y 10.000 de test. Cada imagen es un array de 784 valores (28 × 28) que representan niveles de gris.</Note>
-
-El objetivo es simple: dada una imagen, decir qué dígito es.
+Para ser fieles a los desafíos más clásicos del aprendizaje automático, vamos a usar los datos de MNIST. Son imágenes de 28 × 28 píxeles con dígitos escritos a mano, del 0 al 9.<Note label="Definición">MNIST contiene 60.000 imágenes de entrenamiento y 10.000 de test. Cada imagen es un array de 784 valores (28 × 28) que representan niveles de gris.</Note> El objetivo es simple: escribiremos una red neuronal tendrá como objetivo leer dígitos escritos a mano.
 
 ### La arquitectura
 
-Diseñemos la red más sencilla que funcione:
+Como nuestro objetivo es pedagógico, vamos a implementar una de las arquitecturas más sencillas que, pese a su sencillez, es capaz de resolver el problema con un grado aceptable de precisión.
+
+<Arquitectura />
 
 - **Capa de entrada**: 784 neuronas (una por píxel de la imagen)
 - **Capa oculta**: 10 neuronas con activación ReLU
 - **Capa de salida**: 10 neuronas con activación softmax (una por dígito)
 
-```mermaid
-flowchart LR
-    A[784 inputs] --> B[10 hidden<br/>ReLU]
-    B --> C[10 output<br/>Softmax]
-```
-
-Cada capa tiene dos operaciones: primero una transformación lineal (pesos × entradas + sesgo), luego una activación no lineal.
-
 ## Inicialización
 
-Antes de hacer nada, hay que poner valores iniciales a los pesos y sesgos. Los sesgos pueden empezar a cero sin problema, pero los pesos no: si todas las neuronas arrancan iguales, todas aprenden lo mismo y la red colapsa. Por eso los inicializamos con valores aleatorios pequeños.<Note label="Inicialización de He">La fórmula `randn * sqrt(2 / n)` se conoce como inicialización de He y está pensada para capas que usarán ReLU. La idea: escalar la varianza de los pesos según el número de entradas para que la señal no se dispare ni se desvanezca a medida que avanza por la red.</Note>
+Antes de hacer nada tenemos que asignar valores iniciales a los pesos y sesgos. Los sesgos pueden empezar a cero sin problema pero los pesos no: si todas las neuronas arrancan iguales, todas aprenden lo mismo y la red colapsa. Para evitarlo, los inicializamos con valores aleatorios pequeños.<Note label="Definición">Para los pesos de la capa oculta usamos la [inicialización de He](https://en.wikipedia.org/wiki/Weight_initialization#He_initialization), que está pensada para capas con activación ReLU.</Note>
 
 ```python
-import numpy as np
+from numpy.random import randn, rand
+from numpy import sqrt, zeros
 
-class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.01):
-        self.lr = learning_rate
-        self.W_h = np.random.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size)
-        self.b_h = np.zeros((hidden_size, 1))
-        self.W_o = np.random.randn(output_size, hidden_size) * np.sqrt(2.0 / hidden_size)
-        self.b_o = np.zeros((output_size, 1))
+# Capa oculta (con sufijo: `h` de "hidden")
+W_h = randn(hidden_size, input_size) * sqrt(2.0 / input_size)
+b_h = zeros((hidden_size, 1))
+
+# Capa de salida (con sufijo `o` de "output")
+W_o = rand(output_size, hidden_size) * 2 - 1
+b_o = zeros((output_size, 1))
+
+# Ratio de aprendizaje
+lr = learning_rate
 ```
 
-Con la red preparada, ya podemos hacer pasar datos por ella.
+Con la arquitectura de la red ya preparada, podemos empezar a implementar el paso de datos.
 
 ## Propagación hacia adelante
 
@@ -59,7 +56,7 @@ La propagación hacia adelante es el camino que siguen los datos desde la entrad
 
 ### La entrada
 
-Si tenemos un lote de `m` imágenes, la entrada es una matriz de dimensiones `(784, m)`: una columna por cada ejemplo del lote.<Note label="Convenciones">Usamos la convención de filas = características y columnas = ejemplos. Es la que mejor funciona con NumPy para hacer multiplicaciones de matrices.</Note>
+Si tenemos un lote de `m` imágenes, la entrada es una matriz de dimensiones `(784, m)`: una columna por cada ejemplo del lote.<Note label="Aclaración">Usamos por convención las filas para representar características y las columnas para representar ejemplos.</Note>
 
 ### Capa oculta
 
@@ -78,7 +75,7 @@ donde:
 El resultado $\mathbf{Z}_h$ tiene forma `(10, m)`. En código, una sola línea:
 
 ```python
-self.Z_h = self.W_h @ X + self.b_h
+Z_h = W_h @ X + b_h
 ```
 
 Después aplicamos la activación ReLU, que devuelve cero para valores negativos y deja pasar los positivos sin cambios:
@@ -88,11 +85,13 @@ $$
 $$
 
 ```python
-def relu(self, x):
-    return np.maximum(0, x)
+from numpy import maximum
+
+def relu(x):
+    return maximum(0, x)
 
 # dentro de forward:
-self.A_h = self.relu(self.Z_h)
+A_h = relu(Z_h)
 ```
 
 ### Capa de salida
@@ -106,7 +105,7 @@ $$
 donde $\mathbf{W}_o$ tiene forma `(10, 10)` y $\mathbf{b}_o$ tiene forma `(10, 1)`.
 
 ```python
-self.Z_o = self.W_o @ self.A_h + self.b_o
+Z_o = W_o @ A_h + b_o
 ```
 
 Finalmente, la activación softmax convierte los valores en probabilidades que suman 1:
@@ -116,27 +115,29 @@ $$
 $$
 
 ```python
-def softmax(self, x):
-    exp_x = np.exp(x - np.max(x, axis=0, keepdims=True))
-    return exp_x / np.sum(exp_x, axis=0, keepdims=True)
+from numpy import exp, max, sum
+
+def softmax(x):
+    exp_x = exp(x - max(x, axis=0, keepdims=True))
+    return exp_x / sum(exp_x, axis=0, keepdims=True)
 
 # dentro de forward:
-self.A_o = self.softmax(self.Z_o)
+A_o = softmax(Z_o)
 ```
 
 > La salida de softmax es un vector de 10 probabilidades. La clase con mayor probabilidad es la predicción del modelo.
 
-Aplicado al lote completo, $\mathbf{A}_o$ es una matriz `(10, m)`: una columna por ejemplo, con las 10 probabilidades en cada columna.<Note label="Del ejemplo al lote">A partir de aquí pasamos de hablar de un solo ejemplo ($a_i$, $y_i$) a hablar del lote completo en mayúsculas. $\mathbf{A}_o$ son las predicciones de toda una tanda y $\mathbf{Y}$ son las etiquetas reales codificadas en one-hot, también con forma `(10, m)`.</Note>
+Aplicado al lote completo, $\mathbf{A}_o$ es una matriz `(10, m)`: una columna por ejemplo, con las 10 probabilidades en cada columna.<Note label="Aclaración">A partir de aquí pasamos de hablar de un solo ejemplo ($a_i$, $y_i$) a hablar del lote completo en mayúsculas. $\mathbf{A}_o$ son las predicciones de toda una tanda y $\mathbf{Y}$ son las etiquetas reales codificadas en one-hot, también con forma `(10, m)`.</Note>
 
 Juntando todo, el `forward` queda así:
 
 ```python
-def forward(self, X):
-    self.Z_h = self.W_h @ X + self.b_h
-    self.A_h = self.relu(self.Z_h)
-    self.Z_o = self.W_o @ self.A_h + self.b_o
-    self.A_o = self.softmax(self.Z_o)
-    return self.A_o
+def forward(X):
+    Z_h = W_h @ X + b_h
+    A_h = relu(Z_h)
+    Z_o = W_o @ A_h + b_o
+    A_o = softmax(Z_o)
+    return A_o
 ```
 
 ## Retropropagación
@@ -166,7 +167,7 @@ $$
 Es decir: la diferencia entre lo que predijo la red y lo que debería haber predicho. Si para el dígito 5 la red dio probabilidad 0.8 pero la etiqueta real era 1, el gradiente es `0.8 - 1 = -0.2` para esa clase.
 
 ```python
-dZ_o = self.A_o - Y
+dZ_o = A_o - Y
 ```
 
 A partir de ese gradiente, sacamos el de los pesos $\mathbf{W}_o$:
@@ -176,7 +177,7 @@ $$
 $$
 
 ```python
-self.dW_o = dZ_o @ self.A_h.T / m
+dW_o = dZ_o @ A_h.T / m
 ```
 
 El `/ m` es lo que promedia el gradiente sobre los `m` ejemplos del lote, para que el tamaño del paso no dependa del tamaño del lote.
@@ -190,7 +191,7 @@ $$
 donde $\mathbf{1}$ es un vector de unos: el producto equivale a sumar sobre las columnas del lote.
 
 ```python
-self.db_o = np.sum(dZ_o, axis=1, keepdims=True) / m
+db_o = sum(dZ_o, axis=1, keepdims=True) / m
 ```
 
 ### Capa oculta
@@ -202,7 +203,7 @@ $$
 $$
 
 ```python
-dA_h = self.W_o.T @ dZ_o
+dA_h = W_o.T @ dZ_o
 ```
 
 Después aplicamos el gradiente de ReLU, que es 1 donde la entrada era positiva y 0 donde era negativa:
@@ -212,11 +213,11 @@ $$
 $$
 
 ```python
-def relu_derivative(self, x):
+def relu_derivative(x):
     return (x > 0).astype(float)
 
 # dentro de backward:
-dZ_h = dA_h * self.relu_derivative(self.Z_h)
+dZ_h = dA_h * relu_derivative(Z_h)
 ```
 
 Aquí hay un detalle clave: **si una neurona estaba apagada durante la propagación hacia adelante (su valor era ≤ 0), su gradiente es 0**. No aprende nada en este paso. Cuando una neurona se queda en ese estado para todos los ejemplos, hablamos de una "neurona muerta": no contribuye a la salida y tampoco recibe señal para corregirse.
@@ -228,23 +229,23 @@ $$
 $$
 
 ```python
-self.dW_h = dZ_h @ X.T / m
-self.db_h = np.sum(dZ_h, axis=1, keepdims=True) / m
+dW_h = dZ_h @ X.T / m
+db_h = sum(dZ_h, axis=1, keepdims=True) / m
 ```
 
 Juntando los dos pasos en un solo método:
 
 ```python
-def backward(self, X, Y):
+def backward(X, Y):
     m = X.shape[1]
-    dZ_o = self.A_o - Y
-    self.dW_o = dZ_o @ self.A_h.T / m
-    self.db_o = np.sum(dZ_o, axis=1, keepdims=True) / m
+    dZ_o = A_o - Y
+    dW_o = dZ_o @ A_h.T / m
+    db_o = sum(dZ_o, axis=1, keepdims=True) / m
 
-    dA_h = self.W_o.T @ dZ_o
-    dZ_h = dA_h * self.relu_derivative(self.Z_h)
-    self.dW_h = dZ_h @ X.T / m
-    self.db_h = np.sum(dZ_h, axis=1, keepdims=True) / m
+    dA_h = W_o.T @ dZ_o
+    dZ_h = dA_h * relu_derivative(Z_h)
+    dW_h = dZ_h @ X.T / m
+    db_h = sum(dZ_h, axis=1, keepdims=True) / m
 ```
 
 ## Descenso de gradiente
@@ -257,16 +258,16 @@ $$
 
 donde $\eta$ es la tasa de aprendizaje, un hiperparámetro que controla cuánto nos movemos en cada paso.
 
-> Si el gradiente es positivo, restamos; si es negativo, sumamos. Siempre vamos "cuesta abajo".
+> Restamos el gradiente (multiplicado por la tasa de aprendizaje). Si el gradiente es positivo, el peso disminuye; si es negativo, aumenta. Siempre vamos "cuesta abajo".
 
 En código, una línea por parámetro:
 
 ```python
-def update(self):
-    self.W_o -= self.lr * self.dW_o
-    self.b_o -= self.lr * self.db_o
-    self.W_h -= self.lr * self.dW_h
-    self.b_h -= self.lr * self.db_h
+def update():
+    W_o -= lr * dW_o
+    b_o -= lr * db_o
+    W_h -= lr * dW_h
+    b_h -= lr * db_h
 ```
 
 Un ciclo completo de entrenamiento:

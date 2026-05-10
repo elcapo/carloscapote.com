@@ -103,7 +103,7 @@
 
 /* Shiki dual-theme: light mode background */
 .astro-code {
-  border: 1.5px solid color-mix(in srgb,var(--color-accent) 30%,var(--color-border)) !important;
+  border: 3px solid color-mix(in srgb,var(--color-accent) 50%,var(--color-border)) !important;
   background-color: var(--color-muted) !important;
 }
 
@@ -409,8 +409,10 @@ section {
 /* MathJax
    La regla global `img, svg, video { display: block }` rompe las fórmulas
    en línea: el SVG generado por MathJax pasa a ser bloque y arrastra la
-   fórmula a su propia línea. Restauramos el display por defecto solo dentro
-   de los contenedores inline de MathJax. */
+   fórmula a su propia línea. Además, esa misma regla impide que las
+   fórmulas en bloque queden centradas, porque `text-align: center` no
+   afecta a un SVG declarado como block. Tenemos que tratar los dos casos
+   por separado. */
 mjx-container {
   margin: 0;
 }
@@ -418,6 +420,12 @@ mjx-container[display="true"] {
   display: block;
   text-align: center;
   margin-block: 1rem;
+}
+mjx-container[display="true"] > svg {
+  display: block;
+  margin-inline: auto;
+  height: auto;
+  max-width: 100%;
 }
 mjx-container:not([display="true"]) {
   display: inline-block;

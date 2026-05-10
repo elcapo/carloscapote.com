@@ -1,0 +1,30 @@
+---
+/**
+ * Diagrama SVG de la arquitectura de la red 784 → 10 (ReLU) → 10 (Softmax).
+ *
+ * El SVG se inserta inline (no como `<img>`) para que sus clases CSS
+ * hereden el contexto del documento y respondan tanto a la preferencia
+ * del sistema (`prefers-color-scheme`) como al toggle manual del sitio
+ * (`:root[data-theme="dark"]` / `:root[data-theme="light"]`).
+ */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const svgPath = path.resolve('public/red-neuronal/arquitectura.svg');
+const svg = await fs.readFile(svgPath, 'utf-8');
+---
+
+<figure class="nn-arch-figure">
+  <Fragment set:html={svg} />
+</figure>
+
+<style>
+  .nn-arch-figure {
+    margin-block: 2rem;
+  }
+  .nn-arch-figure :global(svg.nn-arch) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>

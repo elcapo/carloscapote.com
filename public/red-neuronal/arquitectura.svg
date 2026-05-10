@@ -1,0 +1,142 @@
+<svg class="nn-arch" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 660" role="img" aria-label="Arquitectura de la red: 784 entradas conectadas a 10 neuronas ocultas con ReLU y a 10 neuronas de salida con softmax, una por dígito del 0 al 9." font-family="Space Grotesk, system-ui, sans-serif">
+<style>.nn-arch{--txt:#09090B;--muted:#52525B;--border:#27272A;--accent:#AA2B95;--hidden:#EEDDCF;--line:#A1A1AA;--neuron-fill:#F7EFE9;}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .nn-arch{--txt:#F7EFE9;--muted:#A1A1AA;--border:#A1A1AA;--accent:#CB5AB8;--hidden:#52525B;--line:#71717A;--neuron-fill:#222221;}}:root[data-theme="dark"] .nn-arch{--txt:#F7EFE9;--muted:#A1A1AA;--border:#A1A1AA;--accent:#CB5AB8;--hidden:#52525B;--line:#71717A;--neuron-fill:#222221;}.nn-arch .title{font-size:22px;font-weight:600;fill:var(--txt)}.nn-arch .sub{font-size:13px;fill:var(--muted);letter-spacing:0.04em;text-transform:uppercase;font-family:ui-monospace,Consolas,monospace}.nn-arch .lbl{font-size:16px;font-weight:600;fill:var(--txt)}.nn-arch .cnt{font-size:12px;fill:var(--muted);font-family:ui-monospace,Consolas,monospace}.nn-arch .dots{font-size:24px;fill:var(--muted);font-weight:700}.nn-arch .tag{font-size:12px;fill:var(--muted);font-family:ui-monospace,Consolas,monospace}.nn-arch .neuron-in{fill:var(--neuron-fill);stroke:var(--border)}.nn-arch .neuron-h{fill:var(--hidden);stroke:var(--border)}.nn-arch .neuron-out{fill:var(--accent);stroke:var(--accent)}.nn-arch .conn{stroke:var(--line);stroke-width:1;opacity:0.4}</style>
+<line x1="234" y1="130.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="130.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="130.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="130.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="130.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="130.0" x2="536" y2="510.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="206.0" x2="536" y2="510.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="282.0" x2="536" y2="510.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="358.0" x2="536" y2="510.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="434.0" x2="536" y2="510.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="130.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="206.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="282.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="358.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="434.0" class="conn"/>
+<line x1="234" y1="510.0" x2="536" y2="510.0" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="130.0" x2="866" y2="510.0" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="206.0" x2="866" y2="510.0" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="282.0" x2="866" y2="510.0" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="358.0" x2="866" y2="510.0" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="434.0" x2="866" y2="510.0" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="130.0" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="172.22222222222223" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="214.44444444444446" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="256.66666666666663" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="298.8888888888889" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="341.1111111111111" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="383.3333333333333" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="425.55555555555554" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="467.77777777777777" class="conn"/>
+<line x1="564" y1="510.0" x2="866" y2="510.0" class="conn"/>
+<circle cx="220" cy="130.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="220" cy="206.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="220" cy="282.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="220" cy="358.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="220" cy="434.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="220" cy="510.0" r="14" class="neuron-in" stroke-width="1.5"/>
+<circle cx="550" cy="130.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="550" cy="206.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="550" cy="282.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="550" cy="358.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="550" cy="434.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="550" cy="510.0" r="14" class="neuron-h" stroke-width="1.5"/>
+<circle cx="880" cy="130.0" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="172.22222222222223" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="214.44444444444446" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="256.66666666666663" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="298.8888888888889" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="341.1111111111111" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="383.3333333333333" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="425.55555555555554" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="467.77777777777777" r="14" class="neuron-out" stroke-width="1.5"/>
+<circle cx="880" cy="510.0" r="14" class="neuron-out" stroke-width="1.5"/>
+<text x="908" y="134.0" class="tag">0</text>
+<text x="908" y="176.22222222222223" class="tag">1</text>
+<text x="908" y="218.44444444444446" class="tag">2</text>
+<text x="908" y="260.66666666666663" class="tag">3</text>
+<text x="908" y="302.8888888888889" class="tag">4</text>
+<text x="908" y="345.1111111111111" class="tag">5</text>
+<text x="908" y="387.3333333333333" class="tag">6</text>
+<text x="908" y="429.55555555555554" class="tag">7</text>
+<text x="908" y="471.77777777777777" class="tag">8</text>
+<text x="908" y="514.0" class="tag">9</text>
+<text x="220" y="328.0" class="dots" text-anchor="middle">⋮</text>
+<text x="550.0" y="50" class="title" text-anchor="middle">Red neuronal para clasificar dígitos manuscritos</text>
+<text x="550.0" y="90" class="sub" text-anchor="middle">784  ›  10  ›  10</text>
+<text x="220" y="604" class="lbl" text-anchor="middle">Entrada</text>
+<text x="220" y="628" class="cnt" text-anchor="middle">784 neuronas (28 × 28 px)</text>
+<text x="550" y="604" class="lbl" text-anchor="middle">Capa oculta</text>
+<text x="550" y="628" class="cnt" text-anchor="middle">10 neuronas</text>
+<text x="550" y="574" class="tag" text-anchor="middle">ReLU</text>
+<text x="880" y="604" class="lbl" text-anchor="middle">Capa de salida</text>
+<text x="880" y="628" class="cnt" text-anchor="middle">10 neuronas (un dígito por neurona)</text>
+<text x="880" y="574" class="tag" text-anchor="middle">Softmax</text>
+</svg>
