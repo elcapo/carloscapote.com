@@ -1,7 +1,7 @@
 ---
 title: "Construir un LLM desde cero, capítulo a capítulo"
 description: "Implementación orientada a objetos del libro de Sebastian Raschka, escrita como código testeable en lugar de notebooks. Atención, arquitectura GPT y preentrenamiento desde primeros principios."
-pubDate: 2026-01-08
+pubDate: 2026-12-31
 tags: ["LLM", "Python", "educativo", "transformers"]
 project: "llm-from-scratch"
 projectUrl: "https://github.com/elcapo/llm-from-scratch"

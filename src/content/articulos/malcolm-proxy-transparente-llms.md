@@ -1,7 +1,7 @@
 ---
 title: "Malcolm: un proxy transparente para ver qué le decimos a los LLMs"
 description: "Construí un proxy de monitorización para APIs de LLM que captura cada petición, traduce entre formatos OpenAI y Anthropic y deja todo registrado en SQLite para inspeccionarlo después."
-pubDate: 2026-02-28
+pubDate: 2026-12-31
 tags: ["LLM", "Python", "observabilidad", "herramientas"]
 project: "Malcolm"
 projectUrl: "https://github.com/malcolm-proxy/malcolm"

@@ -1,6 +1,8 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import rehypeMermaid from 'rehype-mermaid';
+import remarkMath from 'remark-math';
+import rehypeMathjax from 'rehype-mathjax';
 
 export default defineConfig({
   site: 'https://hawara.es',
@@ -17,6 +19,7 @@ export default defineConfig({
       },
       wrap: true,
     },
+    remarkPlugins: [remarkMath],
     rehypePlugins: [
       [
         rehypeMermaid,
@@ -24,14 +27,10 @@ export default defineConfig({
           strategy: 'inline-svg',
           mermaidConfig: {
             theme: 'neutral',
-            // Sin override de `fontFamily`: dejamos que mermaid use su
-            // default ("trebuchet ms", verdana, arial). Si aquí metemos
-            // `var(--font-body)` o cualquier web font, playwright mide con
-            // un fallback y el navegador del usuario con la tipografía
-            // real, y las etiquetas se salen de las cajas.
           },
         },
       ],
+      rehypeMathjax,
     ],
   },
 });

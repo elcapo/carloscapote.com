@@ -25,7 +25,10 @@ const articulos = (await getCollection('articulos'))
 
   <section class="list-section">
     <div class="container">
-      <ArticlesList articulos={articulos} />
+      <ArticlesList articulos={articulos}
+        numbering="asc"
+        maxTags={3}
+        showDrafts={false} />
     </div>
   </section>
 </Layout>

@@ -1,7 +1,7 @@
 ---
 title: "Bocana: liberar el Boletín Oficial de Canarias"
 description: "Cómo construí un archivo digital con búsqueda avanzada para más de 115.000 disposiciones del BOC, y por qué la transparencia administrativa necesita herramientas ciudadanas."
-pubDate: 2026-03-12
+pubDate: 2026-12-31
 tags: ["transparencia", "datos abiertos", "Next.js", "búsqueda"]
 project: "Bocana"
 projectUrl: "https://bocana.org"

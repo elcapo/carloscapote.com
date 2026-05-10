@@ -4,6 +4,7 @@ import ArticlesList from '../components/ArticlesList.astro';
 import { getCollection } from 'astro:content';
 
 const articulos = (await getCollection('articulos'))
+  .filter((articulo) => !articulo.data.draft)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, 4);
 ---
