@@ -153,7 +153,7 @@ $$
 Con todos los gradientes calculados, solo falta actualizar los parámetros en la dirección contraria al gradiente:
 
 $$
-\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \frac\{\partial \mathcal{L}\}\{\partial \mathbf{W}\}
+\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \frac{\partial \mathcal{L}}{\partial \mathbf{W}}
 $$
 
 donde $\eta$ es la tasa de aprendizaje, un hiperparámetro que controla cuánto nos movemos en cada paso.
@@ -220,7 +220,7 @@ class NeuralNetwork:
         self.b_h -= self.lr * self.db_h
 ```
 
-En las pruebas que hice con MNIST, esta red alcanza alrededor del 87% de precisión en el conjunto de test. No está mal para 400 líneas de código en Python puro.
+En las pruebas que hice con MNIST, esta red alcanza alrededor del 90% de precisión en el conjunto de test. No está mal para 400 líneas de código en Python puro.
 
 ## Por qué funciona
 
@@ -245,4 +245,4 @@ Lo que hemos visto es la versión más simple. Hay muchas cosas que se pueden me
 
 Pero la base es esta. Si entiendes esto, entiendes el núcleo de lo que hacen PyTorch y TensorFlow bajo el capó.
 
-> PD: Si te animas a experimentar, el código completo con tests, evaluación y visualizaciones está en [nn-from-scratch](https://github.com/elcapo/nn-from-scratch). Y si quieres ver la matemática en detalle, hay un documento dedicado a las derivadas de softmax.
+> PD: Si te animas a experimentar, el código completo con tests, evaluación y visualizaciones está en [neural-network-from-scratch](https://github.com/elcapo/neural-network-from-scratch). Y si quieres ver la matemática en detalle, hay un documento dedicado a las derivadas de softmax.

@@ -405,3 +405,27 @@ img, svg, video {
 section {
   padding-block: clamp(4rem, 10vw, 8rem);
 }
+
+/* MathJax
+   La regla global `img, svg, video { display: block }` rompe las fórmulas
+   en línea: el SVG generado por MathJax pasa a ser bloque y arrastra la
+   fórmula a su propia línea. Restauramos el display por defecto solo dentro
+   de los contenedores inline de MathJax. */
+mjx-container {
+  margin: 0;
+}
+mjx-container[display="true"] {
+  display: block;
+  text-align: center;
+  margin-block: 1rem;
+}
+mjx-container:not([display="true"]) {
+  display: inline-block;
+  vertical-align: baseline;
+}
+mjx-container:not([display="true"]) > svg {
+  display: inline-block;
+  vertical-align: -0.25em;
+  height: auto;
+  max-width: none;
+}
