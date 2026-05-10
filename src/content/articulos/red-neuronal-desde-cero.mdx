@@ -189,7 +189,7 @@ $$
 dW_o = dZ_o @ A_h.T / m
 ```
 
-El `/ m` es lo que promedia el gradiente sobre los `m` ejemplos del lote, para que el tamaño del paso no dependa del tamaño del lote.
+> El `/ m` es lo que promedia el gradiente sobre los `m` ejemplos del lote, para que el tamaño del paso no dependa del tamaño del lote.
 
 Y el del sesgo $\mathbf{b}_o$:
 
@@ -269,7 +269,7 @@ donde $\eta$ es la tasa de aprendizaje, un hiperparámetro que controla cuánto 
 
 > Restamos el gradiente (multiplicado por la tasa de aprendizaje). Si el gradiente es positivo, el peso disminuye; si es negativo, aumenta. Siempre vamos "cuesta abajo".
 
-En código, una línea por parámetro:
+En código, las actualizaciones tienen este aspecto:
 
 ```python
 def update():
@@ -279,26 +279,36 @@ def update():
     b_h -= lr * db_h
 ```
 
-Un ciclo completo de entrenamiento:
-
-1. Tomar un lote de imágenes
-2. Propagar hacia adelante → obtener predicciones
-3. Calcular la pérdida
-4. Retropropagar → obtener todos los gradientes
-5. Actualizar pesos y sesgos
-6. Repetir
-
-En las pruebas que hice con MNIST, esta red alcanza alrededor del 90% de precisión en el conjunto de test. No está mal para algo que cabe en una clase de Python.
-
 ## Por qué funciona
 
-La matemática detrás de todo esto tiene una elegancia que merece apreciarse:
+Las matemáticas que están detrás de todo esto tienen una elegancia digna de mención:
 
 1. **Softmax + entropía cruzada** dan un gradiente limpio: $\mathbf{A}_o - \mathbf{Y}$. Sin complicaciones, sin términos extra.
 
 2. **ReLU** es computacionalmente eficiente y no aplasta los gradientes como hacen otras activaciones (sigmoide, tanh), aunque trae consigo el problema de las neuronas muertas que vimos al retropropagar.
 
 3. **La regla de la cadena** permite propagar el error hacia atrás capa por capa, calculando todos los gradientes con solo dos pasadas por la red.
+
+```mermaid
+---
+config:
+  theme: mc
+---
+flowchart LR
+    Batch["Tomar lote<br>de imágenes"] --> Forward["Propagar<br>hacia adelante"]
+    Forward --> Predict["Hacer<br>predicciones"]
+    Predict --> Loss["Calcular<br>pérdida"]
+    Loss --> Backward["Retropropagar<br>gradientes"]
+    Backward --> Learn["Actualizar<br>pesos y sesgos"]
+    Learn -. repetir .-> Batch
+
+    Batch@{ shape: docs}
+    Forward@{ shape: procs}
+    Predict@{ shape: docs}
+    Loss@{ shape: procs}
+    Backward@{ shape: procs}
+    Learn@{ shape: procs}
+```
 
 La clave del aprendizaje es que cada peso recibe un gradiente que le dice exactamente cuánto contribuyó al error final, y en qué dirección debería ajustarse.
 
