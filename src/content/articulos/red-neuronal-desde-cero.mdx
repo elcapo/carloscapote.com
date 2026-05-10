@@ -35,6 +35,24 @@ flowchart LR
 
 Cada capa tiene dos operaciones: primero una transformación lineal (pesos × entradas + sesgo), luego una activación no lineal.
 
+## Inicialización
+
+Antes de hacer nada, hay que poner valores iniciales a los pesos y sesgos. Los sesgos pueden empezar a cero sin problema, pero los pesos no: si todas las neuronas arrancan iguales, todas aprenden lo mismo y la red colapsa. Por eso los inicializamos con valores aleatorios pequeños.<Note label="Inicialización de He">La fórmula `randn * sqrt(2 / n)` se conoce como inicialización de He y está pensada para capas que usarán ReLU. La idea: escalar la varianza de los pesos según el número de entradas para que la señal no se dispare ni se desvanezca a medida que avanza por la red.</Note>
+
+```python
+import numpy as np
+
+class NeuralNetwork:
+    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.01):
+        self.lr = learning_rate
+        self.W_h = np.random.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size)
+        self.b_h = np.zeros((hidden_size, 1))
+        self.W_o = np.random.randn(output_size, hidden_size) * np.sqrt(2.0 / hidden_size)
+        self.b_o = np.zeros((output_size, 1))
+```
+
+Con la red preparada, ya podemos hacer pasar datos por ella.
+
 ## Propagación hacia adelante
 
 La propagación hacia adelante es el camino que siguen los datos desde la entrada hasta la salida. Vamos paso a paso.
@@ -45,26 +63,37 @@ Si tenemos un lote de `m` imágenes, la entrada es una matriz de dimensiones `(7
 
 ### Capa oculta
 
-La capa oculta transforma la entrada:
+La capa oculta transforma la entrada con sus pesos y sesgos:
 
 $$
 \mathbf{Z}_h = \mathbf{W}_h \mathbf{X} + \mathbf{b}_h
 $$
 
 donde:
+
 - $\mathbf{W}_h$ es la matriz de pesos de forma `(10, 784)`
 - $\mathbf{b}_h$ es el vector de sesgos de forma `(10, 1)`
 - $\mathbf{X}$ es la entrada de forma `(784, m)`
 
-El resultado $\mathbf{Z}_h$ tiene forma `(10, m)`.
+El resultado $\mathbf{Z}_h$ tiene forma `(10, m)`. En código, una sola línea:
 
-Después aplicamos la activación ReLU:
+```python
+self.Z_h = self.W_h @ X + self.b_h
+```
+
+Después aplicamos la activación ReLU, que devuelve cero para valores negativos y deja pasar los positivos sin cambios:
 
 $$
 \mathbf{A}_h = \max(0, \mathbf{Z}_h)
 $$
 
-La función ReLU es simple: devuelve cero para valores negativos y deja pasar los positivos sin cambios.
+```python
+def relu(self, x):
+    return np.maximum(0, x)
+
+# dentro de forward:
+self.A_h = self.relu(self.Z_h)
+```
 
 ### Capa de salida
 
@@ -76,17 +105,43 @@ $$
 
 donde $\mathbf{W}_o$ tiene forma `(10, 10)` y $\mathbf{b}_o$ tiene forma `(10, 1)`.
 
+```python
+self.Z_o = self.W_o @ self.A_h + self.b_o
+```
+
 Finalmente, la activación softmax convierte los valores en probabilidades que suman 1:
 
 $$
 \text{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_j e^{z_j}}
 $$
 
+```python
+def softmax(self, x):
+    exp_x = np.exp(x - np.max(x, axis=0, keepdims=True))
+    return exp_x / np.sum(exp_x, axis=0, keepdims=True)
+
+# dentro de forward:
+self.A_o = self.softmax(self.Z_o)
+```
+
 > La salida de softmax es un vector de 10 probabilidades. La clase con mayor probabilidad es la predicción del modelo.
+
+Aplicado al lote completo, $\mathbf{A}_o$ es una matriz `(10, m)`: una columna por ejemplo, con las 10 probabilidades en cada columna.<Note label="Del ejemplo al lote">A partir de aquí pasamos de hablar de un solo ejemplo ($a_i$, $y_i$) a hablar del lote completo en mayúsculas. $\mathbf{A}_o$ son las predicciones de toda una tanda y $\mathbf{Y}$ son las etiquetas reales codificadas en one-hot, también con forma `(10, m)`.</Note>
+
+Juntando todo, el `forward` queda así:
+
+```python
+def forward(self, X):
+    self.Z_h = self.W_h @ X + self.b_h
+    self.A_h = self.relu(self.Z_h)
+    self.Z_o = self.W_o @ self.A_h + self.b_o
+    self.A_o = self.softmax(self.Z_o)
+    return self.A_o
+```
 
 ## Retropropagación
 
-Aquí es donde ocurre el "aprendizaje". La retropropagación calcula cómo cambiar cada peso para reducir el error. Es la aplicación de la regla de la cadena del cálculo.
+Aquí es donde ocurre el "aprendizaje". La retropropagación calcula cómo cambiar cada peso para reducir el error. Es la aplicación de la regla de la cadena del cálculo: empezamos por el final de la red y vamos repartiendo la culpa hacia atrás, capa por capa.
 
 ### La función de pérdida
 
@@ -100,53 +155,97 @@ donde $y_i$ es la etiqueta real (codificada en one-hot) y $a_i$ es la probabilid
 
 La intuición es clara: si el dígito verdadero es el 3, queremos que $a_3$ sea cercana a 1. El término $-\log(a_3)$ es exactamente eso: cuando $a_3 \to 1$ la pérdida va a 0; cuando $a_3 \to 0$ explota.
 
-### El gradiente de la pérdida respecto a softmax
+### Capa de salida
 
-Esto es lo más bonito de toda la matemática. Sin entrar en detalles extensos (hay un documento dedicado), el gradiente resulta en:
+El primer gradiente que necesitamos es el de la pérdida respecto a $\mathbf{Z}_o$. Sin entrar en el desarrollo (hay un documento dedicado a la derivada de softmax), el resultado es bonito:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_o} = \mathbf{A}_o - \mathbf{Y}
 $$
 
-Dicho de otra forma: la diferencia entre lo que predijo la red y lo que debería haber predicho. Si para el dígito 5 la red dio probabilidad 0.8 pero debería ser 1, el gradiente es 0.8 - 1 = -0.2 para esa clase.
+Es decir: la diferencia entre lo que predijo la red y lo que debería haber predicho. Si para el dígito 5 la red dio probabilidad 0.8 pero la etiqueta real era 1, el gradiente es `0.8 - 1 = -0.2` para esa clase.
 
-### Gradientes de los parámetros de salida
+```python
+dZ_o = self.A_o - Y
+```
 
-Con el gradiente de $\mathbf{Z}_o$ calculamos los gradientes de los pesos:
+A partir de ese gradiente, sacamos el de los pesos $\mathbf{W}_o$:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}_o} = \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_o} \mathbf{A}_h^T
 $$
 
-Y para los sesgos:
+```python
+self.dW_o = dZ_o @ self.A_h.T / m
+```
+
+El `/ m` es lo que promedia el gradiente sobre los `m` ejemplos del lote, para que el tamaño del paso no dependa del tamaño del lote.
+
+Y el del sesgo $\mathbf{b}_o$:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{b}_o} = \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_o} \cdot \mathbf{1}
 $$
 
-(donde $\mathbf{1}$ es un vector de unos que suma sobre las columnas del lote).
+donde $\mathbf{1}$ es un vector de unos: el producto equivale a sumar sobre las columnas del lote.
 
-### Retropropagación a la capa oculta
+```python
+self.db_o = np.sum(dZ_o, axis=1, keepdims=True) / m
+```
 
-Para llegar a la capa oculta, primero calculamos el gradiente respecto a sus activaciones:
+### Capa oculta
+
+Para llegar a la capa oculta, primero calculamos cuánto contribuyó cada activación $\mathbf{A}_h$ al error:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{A}_h} = \mathbf{W}_o^T \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_o}
 $$
 
-Después aplicamos el gradiente de ReLU (que es simplemente 1 donde la entrada era positiva, 0 donde era negativa):
+```python
+dA_h = self.W_o.T @ dZ_o
+```
+
+Después aplicamos el gradiente de ReLU, que es 1 donde la entrada era positiva y 0 donde era negativa:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_h} = \frac{\partial \mathcal{L}}{\partial \mathbf{A}_h} \odot \mathbf{1}_{\mathbf{Z}_h > 0}
 $$
 
-Aquí hay un detalle clave: **si una neurona estaba "muerta" durante la propagación hacia adelante (su valor era ≤ 0), su gradiente es 0**. No aprende nada.
+```python
+def relu_derivative(self, x):
+    return (x > 0).astype(float)
 
-Finalmente, los gradientes de los pesos de la capa oculta:
+# dentro de backward:
+dZ_h = dA_h * self.relu_derivative(self.Z_h)
+```
+
+Aquí hay un detalle clave: **si una neurona estaba apagada durante la propagación hacia adelante (su valor era ≤ 0), su gradiente es 0**. No aprende nada en este paso. Cuando una neurona se queda en ese estado para todos los ejemplos, hablamos de una "neurona muerta": no contribuye a la salida y tampoco recibe señal para corregirse.
+
+Y por último, los gradientes de los parámetros de la capa oculta:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}_h} = \frac{\partial \mathcal{L}}{\partial \mathbf{Z}_h} \mathbf{X}^T
 $$
+
+```python
+self.dW_h = dZ_h @ X.T / m
+self.db_h = np.sum(dZ_h, axis=1, keepdims=True) / m
+```
+
+Juntando los dos pasos en un solo método:
+
+```python
+def backward(self, X, Y):
+    m = X.shape[1]
+    dZ_o = self.A_o - Y
+    self.dW_o = dZ_o @ self.A_h.T / m
+    self.db_o = np.sum(dZ_o, axis=1, keepdims=True) / m
+
+    dA_h = self.W_o.T @ dZ_o
+    dZ_h = dA_h * self.relu_derivative(self.Z_h)
+    self.dW_h = dZ_h @ X.T / m
+    self.db_h = np.sum(dZ_h, axis=1, keepdims=True) / m
+```
 
 ## Descenso de gradiente
 
@@ -160,6 +259,16 @@ donde $\eta$ es la tasa de aprendizaje, un hiperparámetro que controla cuánto 
 
 > Si el gradiente es positivo, restamos; si es negativo, sumamos. Siempre vamos "cuesta abajo".
 
+En código, una línea por parámetro:
+
+```python
+def update(self):
+    self.W_o -= self.lr * self.dW_o
+    self.b_o -= self.lr * self.db_o
+    self.W_h -= self.lr * self.dW_h
+    self.b_h -= self.lr * self.db_h
+```
+
 Un ciclo completo de entrenamiento:
 
 1. Tomar un lote de imágenes
@@ -169,58 +278,7 @@ Un ciclo completo de entrenamiento:
 5. Actualizar pesos y sesgos
 6. Repetir
 
-## El código
-
-Todo esto suena bien en papel, pero ¿funciona en la práctica? Spoiler: sí, pero con cuidado.
-
-```python
-import numpy as np
-
-class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.01):
-        self.lr = learning_rate
-        # Inicialización de He
-        self.W_h = np.random.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size)
-        self.b_h = np.zeros((hidden_size, 1))
-        self.W_o = np.random.randn(output_size, hidden_size) * np.sqrt(2.0 / hidden_size)
-        self.b_o = np.zeros((output_size, 1))
-
-    def relu(self, x):
-        return np.maximum(0, x)
-
-    def relu_derivative(self, x):
-        return (x > 0).astype(float)
-
-    def softmax(self, x):
-        exp_x = np.exp(x - np.max(x, axis=0, keepdims=True))
-        return exp_x / np.sum(exp_x, axis=0, keepdims=True)
-
-    def forward(self, X):
-        self.Z_h = self.W_h @ X + self.b_h
-        self.A_h = self.relu(self.Z_h)
-        self.Z_o = self.W_o @ self.A_h + self.b_o
-        self.A_o = self.softmax(self.Z_o)
-        return self.A_o
-
-    def backward(self, X, Y):
-        m = X.shape[1]
-        dZ_o = self.A_o - Y
-        self.dW_o = dZ_o @ self.A_h.T / m
-        self.db_o = np.sum(dZ_o, axis=1, keepdims=True) / m
-
-        dA_h = self.W_o.T @ dZ_o
-        dZ_h = dA_h * self.relu_derivative(self.Z_h)
-        self.dW_h = dZ_h @ X.T / m
-        self.db_h = np.sum(dZ_h, axis=1, keepdims=True) / m
-
-    def update(self):
-        self.W_o -= self.lr * self.dW_o
-        self.b_o -= self.lr * self.db_o
-        self.W_h -= self.lr * self.dW_h
-        self.b_h -= self.lr * self.db_h
-```
-
-En las pruebas que hice con MNIST, esta red alcanza alrededor del 90% de precisión en el conjunto de test. No está mal para 400 líneas de código en Python puro.
+En las pruebas que hice con MNIST, esta red alcanza alrededor del 90% de precisión en el conjunto de test. No está mal para algo que cabe en una clase de Python.
 
 ## Por qué funciona
 
@@ -228,7 +286,7 @@ La matemática detrás de todo esto tiene una elegancia que merece apreciarse:
 
 1. **Softmax + entropía cruzada** dan un gradiente limpio: $\mathbf{A}_o - \mathbf{Y}$. Sin complicaciones, sin términos extra.
 
-2. **ReLU** es computacionalmente eficiente y mitiga el problema del gradiente desvaneciente, aunque introduce el problema de las neuronas muertas.
+2. **ReLU** es computacionalmente eficiente y no aplasta los gradientes como hacen otras activaciones (sigmoide, tanh), aunque trae consigo el problema de las neuronas muertas que vimos al retropropagar.
 
 3. **La regla de la cadena** permite propagar el error hacia atrás capa por capa, calculando todos los gradientes con solo dos pasadas por la red.
 
