@@ -115,6 +115,12 @@ const fmt = (d: Date) =>
     gap: 0.75rem;
     height: 100%;
   }
+  /* Dentro de un stack las tarjetas se apilan verticalmente, así que el
+     `height: 100%` (pensado para igualar alturas en las rejillas) genera
+     desbordes al estirar cada tarjeta al alto completo del contenedor. */
+  .apunte-body .stack > .card {
+    height: auto;
+  }
   .apunte-body .card-title {
     font-family: var(--font-heading);
     font-weight: 600;
