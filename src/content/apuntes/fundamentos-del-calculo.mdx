@@ -1,0 +1,478 @@
+---
+title: "Fundamentos del cálculo"
+description: "Resumen visual del vocabulario y las fórmulas de los fundamentos del cálculo: funciones, familias, álgebra y trigonometría."
+pubDate: 2026-05-20
+tags: ["Matemáticas", "Cálculo", "Infografía"]
+draft: false
+---
+
+{/* 01 — Qué es una función */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">01 · Definición</p>
+      <h2 class="section-title display--sm">¿Qué es una función?</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Una función es una regla que asigna a <strong>cada</strong> entrada <strong>exactamente una</strong> salida. Esa frase encierra dos requisitos que deben cumplirse a la vez.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Determinismo</span>
+          <p class="card-body">La misma entrada produce siempre la misma salida. Una máquina que devuelve $0$ o $1$ al azar para el mismo número no es una función.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Unicidad</span>
+          <p class="card-body">A cada entrada le corresponde una sola salida, nunca varias a la vez.</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Notación</span>
+        <div>$f : A \to B \quad\text{con}\quad x \mapsto f(x)$</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 02 — Regla + dominio + codominio */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">02 · Anatomía</p>
+      <h2 class="section-title display--sm">Regla, dominio, codominio.</h2>
+      <p class="section-lede">La fórmula sola no determina una función. Cambia $A$ o $B$ y obtienes una función distinta.</p>
+    </div>
+    <div class="section-body stack">
+      <div class="formula-block">
+        <span class="label">Misma regla, cuatro funciones distintas</span>
+        <div>$f(x) = x^2$</div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Función</th>
+            <th>Inyectiva</th>
+            <th>Suprayectiva</th>
+            <th>Biyectiva</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>$f : \mathbb{R} \to \mathbb{R}$</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td>$f : \mathbb{R} \to [0,\infty)$</td><td class="no">No</td><td class="yes">Sí</td><td class="no">No</td></tr>
+          <tr><td>$f : [0,\infty) \to \mathbb{R}$</td><td class="yes">Sí</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td>$f : [0,\infty) \to [0,\infty)$</td><td class="yes">Sí</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+        </tbody>
+      </table>
+
+      <p class="section-lede">Apretar el dominio influye en la inyectividad; apretar el codominio influye en la suprayectividad. Cada eje se controla por separado.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 03 — Inyectiva, suprayectiva, biyectiva */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">03 · Clasificación</p>
+      <h2 class="section-title display--sm">Inyectiva, suprayectiva, biyectiva.</h2>
+    </div>
+    <div class="section-body stack">
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Inyectiva</span>
+          <p class="card-body">Entradas distintas dan salidas distintas.</p>
+          <div class="formula">$f(x_1)=f(x_2) \implies x_1 = x_2$</div>
+        </div>
+        <div class="card">
+          <span class="card-title">Suprayectiva</span>
+          <p class="card-body">Todo elemento del codominio es imagen de alguna entrada.</p>
+          <div class="formula">$\forall y \in B,\; \exists x \in A : f(x) = y$</div>
+        </div>
+        <div class="card">
+          <span class="card-title">Biyectiva</span>
+          <p class="card-body">Inyectiva <em>y</em> suprayectiva a la vez. Es la condición exacta para tener inversa.</p>
+          <div class="formula">$\text{inyectiva} \wedge \text{suprayectiva}$</div>
+        </div>
+      </div>
+      <p class="section-lede">Las dos propiedades son <strong>independientes</strong>: cada una puede cumplirse o fallar sin obligar a la otra.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 04 — Cuándo f tiene inversa */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">04 · Inversa</p>
+      <h2 class="section-title display--sm">Cuándo $f$ tiene inversa.</h2>
+      <p class="section-lede">Una función $f : A \to B$ admite inversa $f^{-1} : B \to A$ <strong>si y solo si</strong> es biyectiva.</p>
+    </div>
+    <div class="section-body stack">
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Inyectiva de $f$ ⟹ unicidad en $f^{-1}$</span>
+          <p class="card-body">Cada $y \in B$ es imagen de a lo sumo un $x$, así que $f^{-1}(y)$ está bien definido como un único valor.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Suprayectiva de $f$ ⟹ totalidad de $f^{-1}$</span>
+          <p class="card-body">Cada $y \in B$ es imagen de al menos un $x$, así que $f^{-1}$ está definida en todo $B$.</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Inversa caracterizada por composición</span>
+        <div>$f^{-1} \circ f = \operatorname{id}_A \qquad f \circ f^{-1} = \operatorname{id}_B$</div>
+      </div>
+      <p class="section-lede">Esta forma algebraica es la que generaliza a otras estructuras: la inversa es el elemento cuya composición es la identidad.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 05 — Restricción del dominio (arcsin) */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">05 · Restricción</p>
+      <h2 class="section-title display--sm">Forzar la invertibilidad.</h2>
+      <p class="section-lede">La técnica estándar para recuperar una inversa: restringir el dominio a un intervalo de monotonía estricta, cerrado en los puntos donde se alcanzan los extremos.</p>
+    </div>
+    <div class="section-body stack">
+      <div class="formula-block">
+        <span class="label">Caso canónico — Rama principal de arcoseno</span>
+        <div>$\sin : \left[-\tfrac{\pi}{2}, \tfrac{\pi}{2}\right] \to [-1, 1]$</div>
+        <div>$\arcsin : [-1, 1] \to \left[-\tfrac{\pi}{2}, \tfrac{\pi}{2}\right]$</div>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Monotonía</span>
+          <p class="card-body">$\sin$ es estrictamente creciente en $[-\pi/2, \pi/2]$ — inyectiva.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Endpoints cerrados</span>
+          <p class="card-body">Alcanza $-1$ y $+1$ — la imagen es exactamente $[-1, 1]$, suprayectiva.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Por qué fallan otras</span>
+          <p class="card-body">$[0, 2\pi)$ pierde inyectividad; $[0, \pi/2]$ pierde suprayectividad sobre $[-1, 1]$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 06 — Composición */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">06 · Composición</p>
+      <h2 class="section-title display--sm">Componer funciones.</h2>
+    </div>
+    <div class="section-body stack">
+      <div class="formula-block">
+        <span class="label">Definición</span>
+        <div>$f : A \to B,\quad g : B \to C \;\Longrightarrow\; (g \circ f)(x) = g(f(x))$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">No conmutativa</span>
+          <p class="card-body">En general $g \circ f \neq f \circ g$. Con $f(x)=x+1$, $g(x)=x^2$: $(g\circ f)(3)=16$ pero $(f\circ g)(3)=10$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Compatibilidad de dominios</span>
+          <p class="card-body">$g \circ f$ solo está bien definida si $\operatorname{Im}(f) \subseteq \operatorname{dom}(g)$. Toda salida de $f$ debe ser una entrada legal de $g$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 07 — Las siete familias */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">07 · Catálogo</p>
+      <h2 class="section-title display--sm">Las siete familias.</h2>
+      <p class="section-lede">Antes del recorrido familia a familia, tres preguntas de triaje reducen drásticamente el espacio de búsqueda.</p>
+    </div>
+    <div class="section-body stack">
+
+      {/* Triaje */}
+      <div class="triage">
+        <div class="triage-card">
+          <p class="q">¿Hay asíntotas?</p>
+          <p class="branch"><strong>Sí</strong> → racional, exponencial, logarítmica o tangente.</p>
+          <p class="branch"><strong>No</strong> → polinómica, seno/coseno, valor absoluto o a trozos.</p>
+        </div>
+        <div class="triage-card">
+          <p class="q">¿Está acotada?</p>
+          <p class="branch"><strong>Sí</strong> → seno o coseno (las únicas que oscilan entre dos cotas fijas).</p>
+          <p class="branch"><strong>No</strong> → todas las demás.</p>
+        </div>
+        <div class="triage-card">
+          <p class="q">¿Es suave en todo punto?</p>
+          <p class="branch"><strong>Sí</strong> → polinómica, racional, exponencial, logarítmica, sen/cos o tangente.</p>
+          <p class="branch"><strong>No</strong> → valor absoluto o a trozos (el punto de empalme delata).</p>
+        </div>
+      </div>
+
+      {/* 7 firmas familiares */}
+      <div class="stack" style="margin-top: 2rem">
+
+        {/* Polinómica */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="parábola">
+            <line x1="0" y1="50" x2="140" y2="50" stroke="var(--color-border)" stroke-width="1" />
+            <line x1="70" y1="0" x2="70" y2="100" stroke="var(--color-border)" stroke-width="1" />
+            <path d="M 10 10 Q 70 130 130 10" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">Polinómica</h4>
+            <p class="family-form">$p(x) = a_n x^n + \cdots + a_1 x + a_0$</p>
+            <p class="family-desc">Sin asíntotas, no acotada, suave. El grado se lee jointly: número de extremos locales (a lo sumo $n-1$) y comportamiento en $\pm\infty$ (par ⇒ mismo lado, impar ⇒ lados opuestos).</p>
+            <div class="family-tags"><span class="tag">Suave</span><span class="tag">No acotada</span></div>
+          </div>
+        </article>
+
+        {/* Racional */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="hipérbola">
+            <line x1="70" y1="0" x2="70" y2="100" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <line x1="0" y1="50" x2="140" y2="50" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <path d="M 75 10 C 75 40 110 50 135 50" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+            <path d="M 65 90 C 65 60 30 50 5 50" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">Racional</h4>
+            <p class="family-form">$f(x) = \dfrac{p(x)}{q(x)}$</p>
+            <p class="family-desc">Asíntotas verticales en las raíces de $q$ que no lo son de $p$. El comportamiento en $\pm\infty$ depende de los grados: $\deg p < \deg q$ da asíntota horizontal en $0$; $\deg p = \deg q$ da $a_n/b_m$; $\deg p = \deg q + 1$ da oblicua.</p>
+            <div class="family-tags"><span class="tag">Asíntotas</span></div>
+          </div>
+        </article>
+
+        {/* Exponencial */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="exponencial">
+            <line x1="0" y1="80" x2="140" y2="80" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <path d="M 5 78 C 50 76 90 60 135 5" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">Exponencial</h4>
+            <p class="family-form">$f(x) = a\,e^{c x} + k$</p>
+            <p class="family-desc">Una rama dispara, la otra se aplana sobre una asíntota horizontal $y = k$. Sin asíntota vertical: definida para todo $x$. Imagen especular de la logarítmica respecto a $y = x$.</p>
+            <div class="family-tags"><span class="tag">Asíntota horizontal</span></div>
+          </div>
+        </article>
+
+        {/* Logarítmica */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="logarítmica">
+            <line x1="20" y1="0" x2="20" y2="100" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <path d="M 22 95 C 35 50 80 30 135 20" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">Logarítmica</h4>
+            <p class="family-form">$f(x) = a\,\log_b(x - h) + k$</p>
+            <p class="family-desc">Asíntota vertical en $x = h$; sin asíntota horizontal. Definida solo para $x > h$, con crecimiento lento. Se distingue de la exponencial por el eje en el que está la asíntota.</p>
+            <div class="family-tags"><span class="tag">Asíntota vertical</span></div>
+          </div>
+        </article>
+
+        {/* Trigonométrica */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="seno">
+            <line x1="0" y1="50" x2="140" y2="50" stroke="var(--color-border)" stroke-width="1" />
+            <path d="M 0 50 Q 17.5 5 35 50 T 70 50 T 105 50 T 140 50" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">Trigonométrica</h4>
+            <p class="family-form">$a\sin(b(x-c)) + d$ &nbsp;·&nbsp; $\tan x$</p>
+            <p class="family-desc">Seno y coseno: oscilación suave y <strong>acotada</strong> entre dos niveles. Amplitud $=|a|$, periodo $=2\pi/b$. Tangente: periódica pero <strong>no acotada</strong>, con asíntotas verticales en $\pi/2 + k\pi$.</p>
+            <div class="family-tags"><span class="tag tag--accent">Periódica</span><span class="tag">Acotada / no acotada</span></div>
+          </div>
+        </article>
+
+        {/* Valor absoluto */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="valor absoluto">
+            <line x1="0" y1="80" x2="140" y2="80" stroke="var(--color-border)" stroke-width="1" />
+            <polyline points="5,15 70,80 135,15" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+            <circle cx="70" cy="80" r="3" fill="var(--color-accent)" />
+          </svg>
+          <div>
+            <h4 class="family-name">Valor absoluto</h4>
+            <p class="family-form">$f(x) = a\,|x - h| + k$</p>
+            <p class="family-desc">Una V (invertida si $a<0$): dos rectas con una esquina aguda en $(h, k)$. Continua pero no suave en el vértice; pendiente de cada rama $=|a|$.</p>
+            <div class="family-tags"><span class="tag">Continua, no suave</span></div>
+          </div>
+        </article>
+
+        {/* A trozos */}
+        <article class="family">
+          <svg class="family-graph" viewBox="0 0 140 100" aria-label="a trozos">
+            <line x1="0" y1="50" x2="140" y2="50" stroke="var(--color-border)" stroke-width="1" />
+            <line x1="5" y1="70" x2="65" y2="30" stroke="var(--color-accent)" stroke-width="2" />
+            <line x1="75" y1="80" x2="135" y2="20" stroke="var(--color-accent)" stroke-width="2" />
+            <circle cx="65" cy="30" r="3" fill="var(--color-accent)" />
+            <circle cx="75" cy="80" r="3" fill="var(--color-background)" stroke="var(--color-accent)" stroke-width="2" />
+          </svg>
+          <div>
+            <h4 class="family-name">A trozos</h4>
+            <p class="family-form">$f(x) = \begin{cases} f_1(x) & x \in I_1 \\ f_2(x) & x \in I_2 \end{cases}$</p>
+            <p class="family-desc">Distintas reglas en distintos intervalos. En el empalme hay tres síntomas: <strong>esquina</strong> (mismo valor, distinta pendiente), <strong>salto</strong> (hueco vertical) o <strong>removible</strong> (un punto suelto fuera de la curva).</p>
+            <div class="family-tags"><span class="tag">Discontinuidad</span></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 08 — Álgebra */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">08 · Álgebra</p>
+      <h2 class="section-title display--sm">Álgebra esencial.</h2>
+      <p class="section-lede">Cuatro identidades que aparecen una y otra vez en cálculo, sobre todo simplificando integrales.</p>
+    </div>
+    <div class="section-body stack">
+      <div class="grid-2">
+        <div class="identity">
+          <p class="name">Cuadrado de un binomio</p>
+          <p class="body">$(a+b)^2 = a^2 + 2ab + b^2$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Diferencia de cuadrados</p>
+          <p class="body">$(a-b)(a+b) = a^2 - b^2$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Radical y valor absoluto</p>
+          <p class="body">$\sqrt{a^2} = |a|$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Identidad pitagórica</p>
+          <p class="body">$\sin^2 x + \cos^2 x = 1$</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Recetas derivadas de la pitagórica</span>
+        <div>$\tan^2 x + 1 = \sec^2 x$</div>
+        <div>$1 + \cot^2 x = \csc^2 x$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Recta — dos puntos bastan</span>
+          <p class="card-body">Para $y = ax + b$, dos puntos $(x_1, y_1)$ y $(x_2, y_2)$ generan un sistema $2\times 2$ que fija $a$ y $b$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Racional desplazada</span>
+          <p class="card-body">Para $y = \dfrac{c}{x-h} + d$ con asíntotas ya leídas, dos puntos adicionales determinan $c$ y $d$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 09 — Trigonometría */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">09 · Trigonometría</p>
+      <h2 class="section-title display--sm">El círculo unitario.</h2>
+      <p class="section-lede">La trigonometría no trata, en el fondo, de triángulos: trata de un punto que gira en el círculo de radio $1$ centrado en el origen.</p>
+    </div>
+    <div class="section-body stack">
+
+      <div class="grid-2">
+        <div class="card" style="align-items: center; justify-content: center">
+          <svg viewBox="0 0 220 220" width="220" height="220" aria-label="círculo unitario">
+            <line x1="10" y1="110" x2="210" y2="110" stroke="var(--color-border)" />
+            <line x1="110" y1="10" x2="110" y2="210" stroke="var(--color-border)" />
+            <circle cx="110" cy="110" r="90" fill="none" stroke="var(--color-foreground)" stroke-width="1.5" />
+            <line x1="110" y1="110" x2="174" y2="46" stroke="var(--color-accent)" stroke-width="2" />
+            <line x1="174" y1="46" x2="174" y2="110" stroke="var(--color-accent-hover)" stroke-width="2" stroke-dasharray="4,4" />
+            <line x1="110" y1="110" x2="174" y2="110" stroke="var(--color-accent-hover)" stroke-width="2" stroke-dasharray="4,4" />
+            <circle cx="174" cy="46" r="4" fill="var(--color-accent)" />
+            <path d="M 140 110 A 30 30 0 0 0 160 88" fill="none" stroke="var(--color-foreground)" stroke-width="1.2" />
+            <text x="146" y="106" font-family="Space Grotesk" font-size="13" fill="var(--color-foreground)">θ</text>
+            <text x="120" y="80" font-family="Space Grotesk" font-size="12" fill="var(--color-muted-foreground)">1</text>
+            <text x="178" y="80" font-family="Space Grotesk" font-size="12" fill="var(--color-muted-foreground)">sin θ</text>
+            <text x="130" y="125" font-family="Space Grotesk" font-size="12" fill="var(--color-muted-foreground)">cos θ</text>
+          </svg>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <span class="card-title">Definiciones</span>
+            <div class="card-body">
+              <p>$\cos\theta$ — coordenada horizontal del punto del círculo.</p>
+              <p>$\sin\theta$ — coordenada vertical.</p>
+              <p>$\tan\theta = \dfrac{\sin\theta}{\cos\theta}$ — pendiente del radio.</p>
+            </div>
+          </div>
+          <div class="card">
+            <span class="card-title">Grados ↔ radianes</span>
+            <div class="card-body">
+              <p>$\text{rad} = \dfrac{\pi}{180}\cdot\text{grados}$</p>
+              <p>$180^\circ \!=\! \pi \;\;\;\; 90^\circ \!=\! \tfrac{\pi}{2} \;\;\;\; 45^\circ \!=\! \tfrac{\pi}{4} \;\;\;\; 30^\circ \!=\! \tfrac{\pi}{6}$</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="identity">
+          <p class="name">Pitagórica</p>
+          <p class="body">$\sin^2 x + \cos^2 x = 1$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Ángulos complementarios</p>
+          <p class="body">$\sin(\tfrac{\pi}{2}-x) = \cos x$ &nbsp; $\cos(\tfrac{\pi}{2}-x) = \sin x$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Negativos · paridad</p>
+          <p class="body">$\sin(-x) = -\sin x$ &nbsp; $\cos(-x) = \cos x$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Suplementarios</p>
+          <p class="body">$\sin(\pi - x) = \sin x$ &nbsp; $\cos(\pi - x) = -\cos x$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Suma y diferencia</p>
+          <p class="body">$\sin(a \pm b) = \sin a \cos b \pm \cos a \sin b$<br />$\cos(a \pm b) = \cos a \cos b \mp \sin a \sin b$</p>
+        </div>
+        <div class="identity">
+          <p class="name">Ángulo doble</p>
+          <p class="body">$\sin(2x) = 2\sin x \cos x$<br />$\cos(2x) = \cos^2 x - \sin^2 x$</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Resolver una ecuación trigonométrica</span>
+        <div>Aislar la función, hallar todas las soluciones en un periodo y generalizar con $+2k\pi$ (o $+k\pi$).</div>
+        <div>$\cos x = \tfrac{1}{2} \;\Longrightarrow\; x = \pm\tfrac{\pi}{3} + 2k\pi$</div>
+      </div>
+    </div>
+  </div>
+</section>

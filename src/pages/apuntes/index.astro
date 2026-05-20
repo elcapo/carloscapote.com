@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ArticlesList from '../../components/ArticlesList.astro';
+import { getCollection } from 'astro:content';
+
+const apuntes = (await getCollection('apuntes'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<Layout
+  title="Apuntes — Estudio Hawara"
+  description="Resúmenes visuales y fichas de estudio: vocabulario, fórmulas y diagramas de los temas que voy estudiando."
+>
+  <section class="page-head">
+    <div class="container">
+      <p class="eyebrow">Archivo</p>
+      <h1 class="display">Apuntes</h1>
+      <p class="lede">
+        Resúmenes visuales y fichas de estudio. Vocabulario, fórmulas y diagramas de los temas que voy estudiando, condensados en infografías navegables.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section class="list-section">
+    <div class="container">
+      <ArticlesList articulos={apuntes}
+        basePath="/apuntes"
+        numbering="asc"
+        maxTags={3}
+        showDrafts={false} />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-head {
+    padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 7vw, 5rem);
+  }
+  .page-head h1 {
+    margin-top: 1.5rem;
+  }
+  .lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 1.75vw, 1.375rem);
+    line-height: 1.55;
+    max-width: 56ch;
+    color: var(--color-secondary);
+  }
+
+  .list-section {
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 11vw, 8rem);
+  }
+</style>

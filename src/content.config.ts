@@ -14,4 +14,15 @@ const articulos = defineCollection({
   }),
 });
 
-export const collections = { articulos };
+const apuntes = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/apuntes' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    pubDate: z.coerce.date(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { articulos, apuntes };

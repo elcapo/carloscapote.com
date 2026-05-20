@@ -1,0 +1,396 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const apuntes = await getCollection('apuntes');
+  return apuntes.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<Layout title={`${entry.data.title} — Estudio Hawara`} description={entry.data.description}>
+  <article class="apunte">
+    <header class="apunte-header">
+      <div class="container">
+        <p class="eyebrow">
+          <a href="/apuntes">← Volver al archivo</a>
+        </p>
+        <h1 class="apunte-title">{entry.data.title}</h1>
+        <p class="apunte-lede">{entry.data.description}</p>
+
+        <div class="apunte-meta">
+          <span class="mono">{fmt(entry.data.pubDate)}</span>
+          {entry.data.draft && <span class="badge">Borrador</span>}
+          {entry.data.tags.map((t) => <span class="tag-inline">{t}</span>)}
+        </div>
+      </div>
+    </header>
+
+    <hr class="rule" />
+
+    <div class="apunte-body">
+      <Content />
+    </div>
+
+    <hr class="rule" />
+
+    <div class="container">
+      <div class="apunte-footer">
+        <a href="/apuntes" class="btn btn--ghost">← Más apuntes</a>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style is:global>
+  /* Layout del cuerpo del apunte
+     A diferencia de los artículos (columna estrecha de prosa), los apuntes
+     usan el contenedor completo y un layout tipo infografía con secciones
+     etiqueta/cuerpo y tarjetas. */
+
+  .apunte-body section {
+    padding-block: clamp(4rem, 9vw, 7rem);
+  }
+
+  .apunte-body .section-label { grid-column: span 12; }
+  .apunte-body .section-body  { grid-column: span 12; }
+  @media (min-width: 900px) {
+    .apunte-body .section-label {
+      grid-column: span 4;
+      position: sticky;
+      top: 6rem;
+      align-self: start;
+    }
+    .apunte-body .section-body  { grid-column: span 8; }
+  }
+  .apunte-body .section-title {
+    margin-top: 1rem;
+    max-width: 16ch;
+  }
+  .apunte-body .section-lede {
+    margin-top: 1.5rem;
+    font-size: clamp(1rem, 1.25vw, 1.125rem);
+    line-height: 1.6;
+    color: var(--color-secondary);
+    max-width: 52ch;
+  }
+
+  .apunte-body .display--sm {
+    font-size: clamp(1.75rem, 6vw, 3.5rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+    font-weight: 300;
+    font-family: var(--font-heading);
+    text-wrap: balance;
+  }
+
+  /* Stacks y rejillas para componer secciones */
+  .apunte-body .stack > * + * { margin-top: 1.5rem; }
+  .apunte-body .grid-2 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .apunte-body .grid-3 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 700px) {
+    .apunte-body .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .apunte-body .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .apunte-body .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* Tarjetas */
+  .apunte-body .card {
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+  }
+  .apunte-body .card-title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-foreground);
+    text-transform: uppercase;
+  }
+  .apunte-body .card-body {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-secondary);
+  }
+  .apunte-body .card-body p + p { margin-top: 0.5rem; }
+  .apunte-body .card .formula { font-size: 1.05rem; }
+
+  /* Bloque de fórmula destacado (texto crema sobre fondo oscuro) */
+  .apunte-body .formula-block {
+    background: var(--color-foreground);
+    color: var(--color-background);
+    padding: 1.5rem 1.75rem;
+    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .apunte-body .formula-block .label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--color-accent-hover);
+  }
+
+  /* Tablas */
+  .apunte-body .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .apunte-body .data-table th,
+  .apunte-body .data-table td {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+  }
+  .apunte-body .data-table thead th {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-muted-foreground);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-foreground);
+  }
+  .apunte-body .data-table tbody tr:last-child td { border-bottom: 0; }
+  .apunte-body .data-table .yes { color: var(--color-accent); font-weight: 600; }
+  .apunte-body .data-table .no  { color: var(--color-muted-foreground); }
+
+  /* Flujo de triaje */
+  .apunte-body .triage {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 900px) {
+    .apunte-body .triage { grid-template-columns: repeat(3, 1fr); }
+  }
+  .apunte-body .triage-card {
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .apunte-body .triage-card .q {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 1.125rem;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+  .apunte-body .triage-card .branch {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-secondary);
+  }
+  .apunte-body .triage-card .branch strong {
+    color: var(--color-foreground);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Firmas de familias (con mini SVG) */
+  .apunte-body .family {
+    display: grid;
+    grid-template-columns: 1fr;
+    border: 1px solid var(--color-border);
+    background: var(--color-muted);
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+  @media (min-width: 700px) {
+    .apunte-body .family {
+      grid-template-columns: 140px 1fr;
+      align-items: start;
+      gap: 1.5rem;
+    }
+  }
+  .apunte-body .family-graph {
+    width: 100%;
+    height: 100px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    display: block;
+  }
+  .apunte-body .family-name {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1.125rem;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.25rem;
+  }
+  .apunte-body .family-form {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-muted-foreground);
+    margin-bottom: 0.5rem;
+  }
+  .apunte-body .family-desc {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-secondary);
+  }
+  .apunte-body .family-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .apunte-body .family-tags .tag,
+  .apunte-body .tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    background: var(--color-foreground);
+    color: var(--color-background);
+  }
+  .apunte-body .tag--accent { background: var(--color-accent); color: #fff; }
+
+  /* Bloques número + caption */
+  .apunte-body .identity {
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+    padding: 1.25rem 1.4rem;
+  }
+  .apunte-body .identity .name {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-muted-foreground);
+    margin-bottom: 0.6rem;
+  }
+  .apunte-body .identity .body { font-size: 1.05rem; }
+
+  /* Hero del apunte: glifos decorativos como en estudiohawara/index */
+  .apunte-body .hero-glyphs {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    opacity: 0.25;
+    font-family: var(--font-mono);
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    color: var(--color-foreground);
+    user-select: none;
+    overflow: hidden;
+  }
+  .apunte-body .hero-glyphs span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15em 0;
+    opacity: 0;
+    transform: translateY(-8px);
+    animation: glyph-in 1.2s var(--ease) forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .apunte-body .hero-glyphs span {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes glyph-in {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .apunte-body .hero-meta {
+    margin-top: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem 3rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .apunte-body .hero-meta strong {
+    display: block;
+    color: var(--color-foreground);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    margin-top: 0.35rem;
+    text-transform: none;
+  }
+</style>
+
+<style>
+  .apunte-header {
+    padding-block: clamp(4rem, 10vw, 8rem) clamp(3rem, 6vw, 5rem);
+  }
+  .apunte-title {
+    margin-top: 1.5rem;
+    font-size: clamp(2.5rem, 10vw, 9rem);
+    font-weight: 300;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+  .apunte-lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 2vw, 1.75rem);
+    line-height: 1.45;
+    color: var(--color-secondary);
+    max-width: 50ch;
+  }
+  .apunte-meta {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+  .tag-inline {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    text-transform: uppercase;
+  }
+
+  .apunte-footer {
+    padding-block: 3rem 5rem;
+  }
+</style>

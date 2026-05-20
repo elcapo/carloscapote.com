@@ -1,8 +1,13 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 
+type ListEntry =
+  | CollectionEntry<'articulos'>
+  | CollectionEntry<'apuntes'>;
+
 interface Props {
-  articulos: CollectionEntry<'articulos'>[];
+  articulos: ListEntry[];
+  basePath?: string;
   headingLevel?: 'h2' | 'h3';
   numbering?: 'asc' | 'desc';
   maxTags?: number;
@@ -11,6 +16,7 @@ interface Props {
 
 const {
   articulos,
+  basePath = '/articulos',
   headingLevel = 'h2',
   numbering = 'desc',
   maxTags,
@@ -33,7 +39,7 @@ const indexFor = (i: number) =>
     const tags = maxTags !== undefined ? a.data.tags.slice(0, maxTags) : a.data.tags;
     return (
       <li class="article-row">
-        <a href={`/articulos/${a.id}`} class="article-link">
+        <a href={`${basePath}/${a.id}`} class="article-link">
           <span class="article-num mono">{String(indexFor(i)).padStart(2, '0')}</span>
           <div class="article-content">
             <TitleTag class="article-title">{a.data.title}</TitleTag>
