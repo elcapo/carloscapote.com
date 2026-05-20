@@ -1,6 +1,6 @@
-# Estudio Hawara
+# Carlos Capote
 
-Sitio web de [Estudio Hawara](https://hawara.es): software y cultura libres, casos de uso y artículos pedagógicos en profundidad.
+Sitio web personal de [Carlos Capote](https://carloscapote.com): software y cultura libres, casos de uso y artículos pedagógicos en profundidad.
 
 ## Stack
 
@@ -33,7 +33,7 @@ src/
 │   └── Layout.astro
 ├── pages/
 │   ├── index.astro          # Landing
-│   ├── quien-soy.astro
+│   ├── quien-soy.mdx
 │   ├── rss.xml.js           # Feed RSS
 │   └── articulos/
 │       ├── index.astro      # Listado

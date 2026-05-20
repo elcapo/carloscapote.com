@@ -5,7 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeMathjax from 'rehype-mathjax';
 
 export default defineConfig({
-  site: 'https://hawara.es',
+  site: 'https://carloscapote.com',
   integrations: [mdx()],
   markdown: {
     syntaxHighlight: {
