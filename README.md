@@ -83,6 +83,36 @@ Para ver logs:
 docker compose logs -f web
 ```
 
+### HTTPS con Traefik
+
+Para producción con TLS automático vía Let's Encrypt, se incluye `docker-compose.traefik.yml` que añade un Traefik como reverse proxy:
+
+```bash
+cp .env.template .env
+# Editar .env con el dominio real y email
+nano .env
+docker compose -f docker-compose.traefik.yml up -d --build
+```
+
+Variables de entorno disponibles:
+
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `DOMAIN` | Dominio del blog (ej: `carloscapote.com`) | — |
+| `LETSENCRYPT_EMAIL` | Email para el registro de Let's Encrypt | — |
+| `HTTP_PORT` | Puerto HTTP | `80` |
+| `HTTPS_PORT` | Puerto HTTPS | `443` |
+| `TRAEFIK_DASHBOARD_USERS` | Credenciales htpasswd para el dashboard (vacío = sin dashboard) | `""` |
+| `TRAEFIK_DASHBOARD_DOMAIN` | Subdominio del dashboard (ej: `traefik.${DOMAIN}`) | `traefik.${DOMAIN}` |
+
+Para generar las credenciales del dashboard:
+
+```bash
+htpasswd -nb admin mi-contraseña-segura
+```
+
+> El servicio `web` del `docker-compose.traefik.yml` construye la misma imagen que el `docker-compose.yml` simple, pero no publica puertos directamente: Traefik enruta el tráfico y gestiona los certificados automáticamente.
+
 ## Artículos
 
 Cada artículo es un `.md` o `.mdx` en `src/content/articulos/`. El frontmatter sigue el esquema definido en `src/content.config.ts`:
