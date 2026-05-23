@@ -88,7 +88,7 @@ docker compose logs -f web
 Para producción con TLS automático vía Let's Encrypt, se incluye `docker-compose.traefik.yml` que añade un Traefik como reverse proxy:
 
 ```bash
-cp .env.template .env
+cp .env.example .env
 # Editar .env con el dominio real y email
 nano .env
 docker compose -f docker-compose.traefik.yml up -d --build
