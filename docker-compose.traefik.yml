@@ -39,8 +39,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.blog.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.blog.entrypoints=websecure"
       - "traefik.http.routers.blog.tls=true"
-      - "traefik.http.routers.blog.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.blog.tls.certresolver=letsencrypt"
       - "traefik.http.services.blog.loadbalancer.server.port=80"
     networks:
       - traefik
