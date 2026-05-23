@@ -21,10 +21,13 @@ docker rm extract-tmp > /dev/null
 echo "3. Copying assets"
 docker cp "$TMP_DIST/_astro/." "$CONTAINER:/usr/share/nginx/html/_astro/" 2>/dev/null || true
 
-echo "4. Copying HTML y resto del contenido"
+echo "4. Copying nginx config"
+docker cp nginx.conf "$CONTAINER:/etc/nginx/conf.d/default.conf"
+
+echo "5. Copying HTML y resto del contenido"
 docker cp "$TMP_DIST/." "$CONTAINER:/usr/share/nginx/html/"
 
-echo "5. Reloading nginx"
+echo "6. Reloading nginx"
 docker exec "$CONTAINER" nginx -s reload
 
 echo "Deploy finished"
