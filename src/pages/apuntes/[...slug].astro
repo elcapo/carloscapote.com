@@ -135,6 +135,13 @@ const fmt = (d: Date) =>
     color: var(--color-secondary);
   }
   .apunte-body .card-body p + p { margin-top: 0.5rem; }
+  .apunte-body .card-body:where(ul) {
+    list-style: none;
+    padding-left: 0.5rem;
+  }
+  .apunte-body .card-body li + li {
+    margin-top: 0.25rem;
+  }
   .apunte-body .card .formula { font-size: 1.05rem; }
 
   /* Bloque de fórmula destacado (texto crema sobre fondo oscuro) */

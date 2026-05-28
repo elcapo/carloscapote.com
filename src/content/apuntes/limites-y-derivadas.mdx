@@ -1,0 +1,475 @@
+---
+title: "Límites y derivadas"
+description: "Resumen visual de límites, derivadas y la regla de L'Hôpital: definición épsilon-delta, teorema del emparedado, derivada como pendiente, y la cadena Fermat → Rolle → Lagrange → Cauchy → L'Hôpital."
+pubDate: 2026-05-27
+tags: ["Matemáticas", "Cálculo", "Infografía"]
+draft: false
+---
+
+{/* 01 — Límites: la idea de "acercarse" */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">01 · Definición</p>
+      <h2 class="section-title display--sm">Límites: la idea de «acercarse».</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Cuando escribimos $\lim_{x \to a} f(x) = L$ decimos: «a medida que $x$ se acerca a $a$, $f(x)$ se acerca a $L$». La palabra clave es <strong>acercarse</strong>: $x$ nunca tiene que alcanzar $a$, ni $f(a)$ tiene que existir.</p>
+
+      <div class="formula-block">
+        <span class="label">Definición formal ($\varepsilon$-$\delta$)</span>
+        <div>$\lim_{x \to a} f(x) = L \iff \forall\varepsilon > 0,\; \exists\delta > 0 : 0 < |x - a| < \delta \implies |f(x) - L| < \varepsilon$</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 02 — ε y δ */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">02 · ε y δ</p>
+      <h2 class="section-title display--sm">Tolerancia y garantía.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">$\varepsilon$ — tolerancia vertical</span>
+          <p class="card-body">Cuán cerca queremos que $f(x)$ esté de $L$. Es la <em>exigencia</em> que planteamos.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">$\delta$ — garantía horizontal</span>
+          <p class="card-body">Cuán cerca debe estar $x$ de $a$ para cumplir la exigencia. Es la <em>respuesta</em> que encontramos.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">El orden importa</span>
+        <p class="card-body">«Para todo $\varepsilon$ existe $\delta$» — el $\delta$ que elegimos puede depender de $\varepsilon$, pero el límite debe funcionar para <strong>todo</strong> $\varepsilon$. No podemos elegir un $\delta$ fijo que sirva para algunas tolerancias pero no para otras.</p>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Ejemplo: $\displaystyle\lim_{x \to 3} 2x = 6$</span>
+        <div>$|2x - 6| = 2|x - 3| < \varepsilon \;\Longrightarrow\; \delta = \varepsilon / 2$</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 03 — Límites laterales */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">03 · Laterales</p>
+      <h2 class="section-title display--sm">Por derecha e izquierda.</h2>
+    </div>
+    <div class="section-body stack">
+      <div class="card">
+        <span class="card-title">Límites laterales</span>
+        <p class="card-body">$\lim_{x \to a^+}$ por la derecha (valores mayores); $\lim_{x \to a^-}$ por la izquierda (valores menores). El límite bilateral existe <strong>si y solo si</strong> ambos laterales existen y son iguales.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 04 — Formas indeterminadas */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">04 · Indeterminación</p>
+      <h2 class="section-title display--sm">Formas indeterminadas.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="card">
+        <span class="card-title">Formas indeterminadas</span>
+        <p class="card-body">$\frac{0}{0},\; \frac{\infty}{\infty},\; \infty - \infty,\; 0 \cdot \infty,\; 0^0,\; \infty^0$<br/>«Indeterminado» no significa «no existe» — significa que hace falta más análisis.</p>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Propiedades algebraicas (con límites finitos)</span>
+        <div>$\displaystyle\lim (f + g) = L + M \quad \lim (f - g) = L - M \quad \lim (c \cdot f) = c \cdot L$</div>
+        <div>$\displaystyle\lim (f \cdot g) = L \cdot M \quad \lim \frac{f}{g} = \frac{L}{M}\;(M \neq 0) \quad \lim f^{\,n} = L^{\,n}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">El peligro</span>
+        <p class="card-body">Estas reglas <strong>fallan</strong> ante formas indeterminadas. Ahí necesitamos otras herramientas: álgebra, el teorema del emparedado o L'Hôpital. La utilidad de las reglas es justamente detectar cuándo <em>no</em> podemos aplicarlas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 05 — Teorema del emparedado */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">05 · Emparedado</p>
+      <h2 class="section-title display--sm">Teorema del emparedado.</h2>
+      <p class="section-lede">Si $f$ está atrapada entre dos funciones que convergen al mismo límite, $f$ no tiene más remedio que converger también a ese límite.</p>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Enunciado (Squeeze / Sandwich)</span>
+        <div>$g(x) \leq f(x) \leq h(x)$ cerca de $a$, y $\displaystyle\lim_{x \to a} g(x) = \lim_{x \to a} h(x) = L$</div>
+        <div>$\displaystyle\Longrightarrow \lim_{x \to a} f(x) = L$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Ejemplo clásico: $\displaystyle\lim_{x \to 0} \frac{\sin x}{x}$</span>
+        <p class="card-body">Para $0 < x < \pi/2$ se cumple $\cos x \leq \frac{\sin x}{x} \leq 1$. Como $\cos x \to 1$ y la constante $1 \to 1$, el emparedado fuerza $\displaystyle\lim_{x \to 0} \frac{\sin x}{x} = 1$. Este límite fundamental aparece constantemente en cálculo y es la primera vez que resolvemos una indeterminación $\frac{0}{0}$ sin álgebra.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Visualmente</span>
+          <p class="card-body">Tres curvas: $\cos x$ por debajo, la constante $1$ por arriba, y $\frac{\sin x}{x}$ apretada entre ambas. Al acercarse a $x=0$, el espacio entre $\cos x$ y $1$ se reduce a cero, y la función del medio no tiene espacio para escapar.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Cuándo usarlo</span>
+          <p class="card-body">El emparedado funciona cuando una función difícil de evaluar directamente está acotada por dos funciones más simples que comparten el mismo límite. Es especialmente útil para límites trigonométricos y funciones oscilantes acotadas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 06 — Continuidad */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">06 · Continuidad</p>
+      <h2 class="section-title display--sm">Cuando el límite y el valor coinciden.</h2>
+      <p class="section-lede">La continuidad cierra el círculo entre límites y evaluaciones directas, y nos da una propiedad clave: podemos meter el límite dentro de una función continua.</p>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Definición</span>
+        <div>$f$ es continua en $a$ si $\displaystyle\lim_{x \to a} f(x) = f(a)$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Tres condiciones que deben cumplirse a la vez</span>
+        <p class="card-body"><strong>1.</strong> $f(a)$ está definida. <strong>2.</strong> $\lim_{x \to a} f(x)$ existe. <strong>3.</strong> Ambos valores coinciden. Si falla cualquiera, hay una discontinuidad.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Discontinuidad evitable</span>
+          <p class="card-body">El límite existe pero $f(a)$ es distinto o no está definido. Gráficamente: un hueco en la curva.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Discontinuidad de salto</span>
+          <p class="card-body">Los límites laterales existen pero son distintos. Ejemplo: la función escalón.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Discontinuidad infinita</span>
+          <p class="card-body">La función crece sin cota cerca de $a$. Gráficamente: una asíntota vertical.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 07 — Continuidad de la composición */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">07 · Composición</p>
+      <h2 class="section-title display--sm">Meter el límite dentro de la función.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Continuidad de la composición</span>
+        <div>Si $\displaystyle\lim_{x \to a} g(x) = L$ y $f$ es continua en $L$, entonces:</div>
+        <div>$\displaystyle\lim_{x \to a} f(g(x)) = f\!\left(\lim_{x \to a} g(x)\right) = f(L)$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Por qué funciona</span>
+          <p class="card-body">$g(x) \to L$ nos acerca arbitrariamente a $L$; como $f$ es continua en $L$, puntos cerca de $L$ producen valores $f(y)$ cerca de $f(L)$. Encadenando: $g(x)$ cerca de $L$ implica $f(g(x))$ cerca de $f(L)$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Ejemplo</span>
+          <p class="card-body">$\displaystyle\lim_{x \to 0} e^{\sin x} = e^{\lim_{x \to 0} \sin x} = e^0 = 1$, porque $\sin x \to 0$ y $e^y$ es continua en $y = 0$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 08 — Derivabilidad implica continuidad */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">08 · Consecuencia</p>
+      <h2 class="section-title display--sm">Derivable ⟹ continua.</h2>
+    </div>
+    <div class="section-body stack">
+      <div class="card">
+        <span class="card-title">Derivabilidad implica continuidad (el recíproco no)</span>
+        <p class="card-body">Si $f'(a)$ existe, entonces $f$ es continua en $a$. El recíproco es falso: $f(x) = |x|$ en $x=0$ es continua pero no derivable (tiene una esquina, no una tangente única).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 09 — Recta tangente */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">09 · Tangente</p>
+      <h2 class="section-title display--sm">Pendiente instantánea.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">En un punto $x_0$ de una curva suave $f(x)$ hay una única recta que «apenas toca» la curva: la <strong>recta tangente</strong>. Su pendiente mide la inclinación instantánea de la curva.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Tangente = pendiente = ángulo</span>
+          <p class="card-body">Si la recta tangente forma un ángulo $\theta$ con la horizontal, su pendiente es exactamente $\tan\theta$. La razón: en el triángulo rectángulo que forma la tangente, $\text{subida} / \text{avance} = \tan\theta$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Pendiente como ángulo</span>
+          <ul class="card-body">
+            <li>$\theta = 0^\circ \to 0$ (plano)</li>
+            <li>$\theta = 45^\circ \to 1$ (sube 1:1)</li>
+            <li>$\theta = -45^\circ \to -1$ (baja 1:1)</li>
+            <li>$\theta \to 90^\circ \to \infty$ (vertical, sin derivada)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 10 — Definición formal de derivada */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">10 · Derivada</p>
+      <h2 class="section-title display--sm">La definición formal.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Definición formal</span>
+        <div>$\displaystyle f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$</div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">$f'(a) > 0$</span>
+          <p class="card-body">$f$ es creciente en $a$ — la tangente apunta hacia arriba.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">$f'(a) < 0$</span>
+          <p class="card-body">$f$ es decreciente en $a$ — la tangente apunta hacia abajo.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">$f'(a) = 0$</span>
+          <p class="card-body">$f$ es estacionaria en $a$ — la tangente es horizontal.</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Notación</span>
+        <div>$f'(a) \quad\text{(Lagrange)}\qquad \displaystyle\frac{df}{dx}\Big|_{a} \quad\text{(Leibniz)}\qquad D_x f(a) \quad\text{(operador)}$</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 11 — Regla de L'Hôpital */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">11 · L'Hôpital</p>
+      <h2 class="section-title display--sm">Comparar velocidades.</h2>
+      <p class="section-lede">Una herramienta que resuelve las indeterminaciones $\frac{0}{0}$ y $\frac{\infty}{\infty}$ comparando las <strong>velocidades</strong> del numerador y el denominador mediante sus derivadas.</p>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Regla</span>
+        <div>Si $\displaystyle\lim_{x \to a} \frac{f(x)}{g(x)}$ da $\frac{0}{0}$ o $\frac{\infty}{\infty}$, y $f,g$ son derivables cerca de $a$, entonces $\displaystyle\lim_{x \to a} \frac{f(x)}{g(x)} = \lim_{x \to a} \frac{f'(x)}{g'(x)}$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Intuición: dos funciones compitiendo</span>
+          <p class="card-body">Piensa en $f$ y $g$ como dos corredores hacia el cero (o el infinito). La derivada mide su velocidad instantánea. Comparar $f'/g'$ nos dice quién llega primero. Si sigue siendo indeterminado, aplicamos L'Hôpital otra vez.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Interpretación geométrica</span>
+          <p class="card-body">Como $f'(x) = \tan\theta_f$ y $g'(x) = \tan\theta_g$, el cociente $f'/g'$ es una razón de dos alturas sobre la misma vertical $x=1$. Si esa razón es $3$, la tangente del numerador es tres veces más inclinada que la del denominador.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 12 — Ejemplos y precauciones de L'Hôpital */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">12 · Precauciones</p>
+      <h2 class="section-title display--sm">Ejemplos y advertencias.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">Ejemplo 1 — $\frac{0}{0}$</span>
+        <div>$\displaystyle\lim_{x \to 0} \frac{\sin x}{x} = \lim_{x \to 0} \frac{\cos x}{1} = 1$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Ejemplo 2 — $\frac{\infty}{\infty}$ (doble aplicación)</span>
+        <div>$\displaystyle\lim_{x \to \infty} \frac{x^2}{e^x} = \lim_{x \to \infty} \frac{2x}{e^x} = \lim_{x \to \infty} \frac{2}{e^x} = 0$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Precauciones</span>
+        <p class="card-body">Solo sirve para $\frac{0}{0}$ o $\frac{\infty}{\infty}$ — otras formas indeterminadas ($0\cdot\infty$, $\infty-\infty$, $0^0$, $\infty^0$) deben reescribirse primero. Requiere derivabilidad en un entorno de $a$. Si $\lim f'/g'$ no existe, L'Hôpital no da información.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 13 — Fermat */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">13 · Fermat</p>
+      <h2 class="section-title display--sm">Extremos locales.</h2>
+      <p class="section-lede">Cuatro teoremas que se encajan como una escalera. Cada uno da un paso más allá del anterior, y juntos justifican la regla de L'Hôpital con todo rigor.</p>
+    </div>
+    <div class="section-body stack">
+      <article class="family">
+        <div>
+          <h4 class="family-name">Fermat</h4>
+          <p class="family-form">$f$ extremo local en $c$, $f'(c)$ existe $\implies f'(c) = 0$</p>
+          <p class="family-desc">En un máximo o mínimo interior, la tangente debe ser horizontal. La demostración usa cocientes incrementales por la derecha ($\leq 0$) y por la izquierda ($\geq 0$) que fuerzan $f'(c) = 0$. Es el único paso con contenido analítico real; todo lo demás construye sobre él.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 14 — Rolle */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">14 · Rolle</p>
+      <h2 class="section-title display--sm">De Fermat a Lagrange.</h2>
+    </div>
+    <div class="section-body stack">
+      <article class="family">
+        <div>
+          <h4 class="family-name">Rolle</h4>
+          <p class="family-form">$f$ continua en $[a,b]$, derivable en $(a,b)$, $f(a) = f(b) \implies \exists c \in (a,b): f'(c) = 0$</p>
+          <p class="family-desc">Si una curva suave empieza y termina a la misma altura, en algún punto intermedio la tangente es horizontal. Se deduce de Fermat + teorema del valor extremo: el máximo y el mínimo o están en el interior (Fermat) o la función es constante.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 15 — Lagrange */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">15 · Lagrange</p>
+      <h2 class="section-title display--sm">Teorema del valor medio.</h2>
+    </div>
+    <div class="section-body stack">
+      <article class="family">
+        <div>
+          <h4 class="family-name">Lagrange (TVM)</h4>
+          <p class="family-form">$\exists c \in (a,b): f'(c) = \dfrac{f(b) - f(a)}{b - a}$</p>
+          <p class="family-desc">La pendiente de la secante entre los extremos se alcanza como pendiente instantánea en algún punto interior. La demostración resta la recta secante de $f$ para construir una función auxiliar $h(x) = f(x) - \varphi(x)$ que cumple Rolle y revela que $f'(c)$ iguala la pendiente de la secante.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 16 — Cauchy */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">16 · Cauchy</p>
+      <h2 class="section-title display--sm">Generalización paramétrica.</h2>
+    </div>
+    <div class="section-body stack">
+      <article class="family">
+        <div>
+          <h4 class="family-name">Cauchy (TVM generalizado)</h4>
+          <p class="family-form">$\exists c \in (a,b): \dfrac{f'(c)}{g'(c)} = \dfrac{f(b) - f(a)}{g(b) - g(a)}$</p>
+          <p class="family-desc">Generaliza Lagrange a dos funciones. Geométricamente: piensa en $(g(t), f(t))$ como una curva paramétrica; en algún punto la dirección tangente es paralela a la cuerda. Se demuestra con una función auxiliar que combina $f$ y $g$ de forma que los términos cruzados se cancelan en los extremos.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 17 — De Cauchy a L'Hôpital */}
+<section>
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">17 · Demostración</p>
+      <h2 class="section-title display--sm">Cerrando el círculo.</h2>
+    </div>
+    <div class="section-body stack">
+
+      <div class="formula-block">
+        <span class="label">De Cauchy a L'Hôpital</span>
+        <div>Si $f(a) = g(a) = 0$, Cauchy en $[a, x]$ da $\displaystyle\frac{f(x)}{g(x)} = \frac{f'(c)}{g'(c)}$ para algún $c$ entre $a$ y $x$.</div>
+        <div>Cuando $x \to a$, el punto $c$ también se acerca a $a$, y obtenemos L'Hôpital:</div>
+        <div>$\displaystyle\lim_{x \to a} \frac{f(x)}{g(x)} = \lim_{x \to a} \frac{f'(c)}{g'(c)} = \lim_{c \to a} \frac{f'(c)}{g'(c)}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Corolario — signo de la derivada</span>
+        <p class="card-body">Si $f'(x) > 0$ en todo un intervalo, entonces $f$ es estrictamente creciente en ese intervalo (por Lagrange: $f(x_2)-f(x_1) = f'(c)(x_2-x_1) > 0$). La propiedad es <strong>de intervalo</strong>, no puntual: un solo $f'(a) > 0$ no basta para garantizar crecimiento en un entorno.</p>
+      </div>
+    </div>
+  </div>
+</section>
