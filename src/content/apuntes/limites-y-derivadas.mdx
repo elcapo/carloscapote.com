@@ -95,8 +95,14 @@ draft: false
 
       <div class="formula-block">
         <span class="label">Propiedades algebraicas (con límites finitos)</span>
-        <div>$\displaystyle\lim (f + g) = L + M \quad \lim (f - g) = L - M \quad \lim (c \cdot f) = c \cdot L$</div>
-        <div>$\displaystyle\lim (f \cdot g) = L \cdot M \quad \lim \frac{f}{g} = \frac{L}{M}\;(M \neq 0) \quad \lim f^{\,n} = L^{\,n}$</div>
+        <div class="grid-3">
+          <div>$\displaystyle\lim (f + g) = L + M$</div>
+          <div>$\displaystyle\lim (f - g) = L - M$</div>
+          <div>$\displaystyle\lim (c \cdot f) = c \cdot L$</div>
+          <div>$\displaystyle\lim (f \cdot g) = L \cdot M$</div>
+          <div>$\displaystyle\lim \frac{f}{g} = \frac{L}{M}\;(M \neq 0)$</div>
+          <div>$\displaystyle\lim f^{\,n} = L^{\,n}$</div>
+        </div>
       </div>
 
       <div class="card">
@@ -121,13 +127,13 @@ draft: false
 
       <div class="formula-block">
         <span class="label">Enunciado (Squeeze / Sandwich)</span>
-        <div>$g(x) \leq f(x) \leq h(x)$ cerca de $a$, y $\displaystyle\lim_{x \to a} g(x) = \lim_{x \to a} h(x) = L$</div>
+        <div>$g(x) \leq f(x) \leq h(x)$ cerca de $a$ y $\displaystyle\lim_{x \to a} g(x) = \lim_{x \to a} h(x) = L$</div>
         <div>$\displaystyle\Longrightarrow \lim_{x \to a} f(x) = L$</div>
       </div>
 
       <div class="card">
-        <span class="card-title">Ejemplo clásico: $\displaystyle\lim_{x \to 0} \frac{\sin x}{x}$</span>
-        <p class="card-body">Para $0 < x < \pi/2$ se cumple $\cos x \leq \frac{\sin x}{x} \leq 1$. Como $\cos x \to 1$ y la constante $1 \to 1$, el emparedado fuerza $\displaystyle\lim_{x \to 0} \frac{\sin x}{x} = 1$. Este límite fundamental aparece constantemente en cálculo y es la primera vez que resolvemos una indeterminación $\frac{0}{0}$ sin álgebra.</p>
+        <span class="card-title">Ejemplo clásico: $L = \displaystyle\lim_{x \to 0} \frac{\sin x}{x}$</span>
+        <p class="card-body">Para $0 < x < \pi/2$ se cumple $\cos x \leq \frac{\sin x}{x} \leq 1$. Como $\cos x \to 1$ y la constante $1 \to 1$, el emparedado fuerza $L = 1$. Este límite fundamental aparece constantemente en cálculo y es la primera vez que resolvemos una indeterminación $\frac{0}{0}$ sin álgebra.</p>
       </div>
 
       <div class="grid-2">
@@ -163,7 +169,11 @@ draft: false
 
       <div class="card">
         <span class="card-title">Tres condiciones que deben cumplirse a la vez</span>
-        <p class="card-body"><strong>1.</strong> $f(a)$ está definida. <strong>2.</strong> $\lim_{x \to a} f(x)$ existe. <strong>3.</strong> Ambos valores coinciden. Si falla cualquiera, hay una discontinuidad.</p>
+        <ul class="card-body">
+          <li><strong>1.</strong> $f(a)$ está definida.</li>
+          <li><strong>2.</strong> $\lim_{x \to a} f(x)$ existe.</li>
+          <li><strong>3.</strong> Ambos valores coinciden. Si falla cualquiera, hay una discontinuidad.</li>
+        </ul>
       </div>
 
       <div class="grid-3">
@@ -297,7 +307,11 @@ draft: false
 
       <div class="formula-block">
         <span class="label">Notación</span>
-        <div>$f'(a) \quad\text{(Lagrange)}\qquad \displaystyle\frac{df}{dx}\Big|_{a} \quad\text{(Leibniz)}\qquad D_x f(a) \quad\text{(operador)}$</div>
+        <div class="grid-3">
+          <div>$f'(a)$ <span style="color: var(--color-accent-hover)">(Lagrange)</span></div>
+          <div>$\displaystyle\frac{df}{dx}\Big|_{a}$ <span style="color: var(--color-accent-hover)">(Leibniz)</span></div>
+          <div>$D_x f(a)$ <span style="color: var(--color-accent-hover)">(operador)</span></div>
+        </div>
       </div>
     </div>
   </div>
