@@ -1,6 +1,6 @@
 ---
 title: "Límites y derivadas"
-description: "Resumen visual de límites, derivadas y la regla de L'Hôpital: definición épsilon-delta, teorema del emparedado, derivada como pendiente, y la cadena Fermat → Rolle → Lagrange → Cauchy → L'Hôpital."
+description: "Resumen visual de límites, derivadas y la regla de L'Hôpital: definición épsilon-delta, teorema del emparedado y derivada como pendiente."
 pubDate: 2026-05-27
 tags: ["Matemáticas", "Cálculo", "Infografía"]
 draft: false
@@ -388,13 +388,16 @@ draft: false
       <p class="section-lede">Cuatro teoremas que se encajan como una escalera. Cada uno da un paso más allá del anterior, y juntos justifican la regla de L'Hôpital con todo rigor.</p>
     </div>
     <div class="section-body stack">
-      <article class="family">
-        <div>
-          <h4 class="family-name">Fermat</h4>
-          <p class="family-form">$f$ extremo local en $c$, $f'(c)$ existe $\implies f'(c) = 0$</p>
-          <p class="family-desc">En un máximo o mínimo interior, la tangente debe ser horizontal. La demostración usa cocientes incrementales por la derecha ($\leq 0$) y por la izquierda ($\geq 0$) que fuerzan $f'(c) = 0$. Es el único paso con contenido analítico real; todo lo demás construye sobre él.</p>
-        </div>
-      </article>
+
+      <div class="formula-block">
+        <span class="label">Regla de Fermat</span>
+        <div>$f$ extremo local en $c$, $f'(c)$ existe $\implies f'(c) = 0$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Interpretación</span>
+        <p class="card-body">En un máximo o mínimo interior, la tangente debe ser horizontal. La demostración usa cocientes incrementales por la derecha ($\leq 0$) y por la izquierda ($\geq 0$) que fuerzan $f'(c) = 0$. Es el único paso con contenido analítico real; todo lo demás construye sobre él.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -409,13 +412,16 @@ draft: false
       <h2 class="section-title display--sm">De Fermat a Lagrange.</h2>
     </div>
     <div class="section-body stack">
-      <article class="family">
-        <div>
-          <h4 class="family-name">Rolle</h4>
-          <p class="family-form">$f$ continua en $[a,b]$, derivable en $(a,b)$, $f(a) = f(b) \implies \exists c \in (a,b): f'(c) = 0$</p>
-          <p class="family-desc">Si una curva suave empieza y termina a la misma altura, en algún punto intermedio la tangente es horizontal. Se deduce de Fermat + teorema del valor extremo: el máximo y el mínimo o están en el interior (Fermat) o la función es constante.</p>
-        </div>
-      </article>
+
+      <div class="formula-block">
+        <span class="label">Teorema de Rolle</span>
+        <div>$f$ continua en $[a,b]$, derivable en $(a,b)$, $f(a) = f(b) \implies \exists c \in (a,b): f'(c) = 0$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Interpretación</span>
+        <p class="card-body">Si una curva suave empieza y termina a la misma altura, en algún punto intermedio la tangente es horizontal. Se deduce de Fermat + teorema del valor extremo: el máximo y el mínimo o están en el interior (Fermat) o la función es constante.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -430,13 +436,16 @@ draft: false
       <h2 class="section-title display--sm">Teorema del valor medio.</h2>
     </div>
     <div class="section-body stack">
-      <article class="family">
-        <div>
-          <h4 class="family-name">Lagrange (TVM)</h4>
-          <p class="family-form">$\exists c \in (a,b): f'(c) = \dfrac{f(b) - f(a)}{b - a}$</p>
-          <p class="family-desc">La pendiente de la secante entre los extremos se alcanza como pendiente instantánea en algún punto interior. La demostración resta la recta secante de $f$ para construir una función auxiliar $h(x) = f(x) - \varphi(x)$ que cumple Rolle y revela que $f'(c)$ iguala la pendiente de la secante.</p>
-        </div>
-      </article>
+
+      <div class="formula-block">
+        <span class="label">Teorema de Lagrange (TVM)</span>
+        <div>$\exists c \in (a,b): f'(c) = \dfrac{f(b) - f(a)}{b - a}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Interpretación</span>
+        <p class="card-body">La pendiente de la secante entre los extremos se alcanza como pendiente instantánea en algún punto interior. La demostración resta la recta secante de $f$ para construir una función auxiliar $h(x) = f(x) - \varphi(x)$ que cumple Rolle y revela que $f'(c)$ iguala la pendiente de la secante.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -451,13 +460,16 @@ draft: false
       <h2 class="section-title display--sm">Generalización paramétrica.</h2>
     </div>
     <div class="section-body stack">
-      <article class="family">
-        <div>
-          <h4 class="family-name">Cauchy (TVM generalizado)</h4>
-          <p class="family-form">$\exists c \in (a,b): \dfrac{f'(c)}{g'(c)} = \dfrac{f(b) - f(a)}{g(b) - g(a)}$</p>
-          <p class="family-desc">Generaliza Lagrange a dos funciones. Geométricamente: piensa en $(g(t), f(t))$ como una curva paramétrica; en algún punto la dirección tangente es paralela a la cuerda. Se demuestra con una función auxiliar que combina $f$ y $g$ de forma que los términos cruzados se cancelan en los extremos.</p>
-        </div>
-      </article>
+
+      <div class="formula-block">
+        <span class="label">Cauchy (TVM generalizado)</span>
+        <div>$\exists c \in (a,b): \dfrac{f'(c)}{g'(c)} = \dfrac{f(b) - f(a)}{g(b) - g(a)}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Interpretación</span>
+        <p class="card-body">Generaliza Lagrange a dos funciones. Geométricamente: piensa en $(g(t), f(t))$ como una curva paramétrica; en algún punto la dirección tangente es paralela a la cuerda. Se demuestra con una función auxiliar que combina $f$ y $g$ de forma que los términos cruzados se cancelan en los extremos.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -476,7 +488,7 @@ draft: false
       <div class="formula-block">
         <span class="label">De Cauchy a L'Hôpital</span>
         <div>Si $f(a) = g(a) = 0$, Cauchy en $[a, x]$ da $\displaystyle\frac{f(x)}{g(x)} = \frac{f'(c)}{g'(c)}$ para algún $c$ entre $a$ y $x$.</div>
-        <div>Cuando $x \to a$, el punto $c$ también se acerca a $a$, y obtenemos L'Hôpital:</div>
+        <div>Cuando $x \to a$ el punto $c$ también se acerca a $a$ y obtenemos L'Hôpital:</div>
         <div>$\displaystyle\lim_{x \to a} \frac{f(x)}{g(x)} = \lim_{x \to a} \frac{f'(c)}{g'(c)} = \lim_{c \to a} \frac{f'(c)}{g'(c)}$</div>
       </div>
 
