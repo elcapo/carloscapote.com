@@ -4,7 +4,7 @@ import ArticlesList from '../../../components/ArticlesList.astro';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const apuntes = await getCollection('apuntes');
+  const apuntes = await getCollection('apuntes', ({ data }) => !data.draft);
   const tags = new Set<string>();
   for (const a of apuntes) {
     for (const t of a.data.tags) {
@@ -17,7 +17,7 @@ export async function getStaticPaths() {
 }
 
 const { tag } = Astro.params;
-const apuntes = (await getCollection('apuntes'))
+const apuntes = (await getCollection('apuntes', ({ data }) => !data.draft))
   .filter((a) => a.data.tags.includes(tag!))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---

@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ArticlesList from '../../components/ArticlesList.astro';
 import { getCollection } from 'astro:content';
 
-const apuntes = (await getCollection('apuntes'))
+const apuntes = (await getCollection('apuntes', ({ data }) => !data.draft))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
