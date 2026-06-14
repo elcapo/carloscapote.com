@@ -1,0 +1,710 @@
+---
+title: "Integración de una variable"
+description: "Resumen visual de la integral de Riemann, el Teorema Fundamental del Cálculo y las técnicas de integración: sumas de Darboux, formas constructiva y evaluativa, sustitución y partes."
+pubDate: 2026-06-13
+tags: ["Matemáticas", "Cálculo", "Infografía"]
+draft: false
+---
+
+import ThemedImage from '../../components/ThemedImage.astro';
+
+{/* 01 — Acumulación */}
+<section id="acumulacion">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">01 · Idea</p>
+      <h2 class="section-title display--sm">Acumulación.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La derivada mide <strong>ritmo de cambio</strong>. La integral es su espejo: mide <strong>cantidad acumulada</strong>. La pregunta arquetípica es «¿qué área hay bajo la curva $y = f(x)$ entre $x = a$ y $x = b$?», pero el mismo mecanismo calcula distancia total desde la velocidad, carga total desde la corriente o coste total desde el coste marginal.</p>
+
+      <div class="card">
+        <span class="card-title">El cuadro unificador</span>
+        <p class="card-body">Hay una cantidad que varía a lo largo de $[a, b]$ y queremos su <strong>total acumulado</strong> en el intervalo. La integración es el aparato que convierte ese «total acumulado» en un número concreto.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 02 — Particiones */}
+<section id="particiones">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">02 · Partición</p>
+      <h2 class="section-title display--sm">Cortar el intervalo.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">El primer paso para domar la acumulación es discretizarla: una <strong>partición</strong> trocea $[a, b]$ en piezas pequeñas donde el área se aproxima por rectángulos.</p>
+
+      <div class="formula-block">
+        <span class="label">Partición de $[a, b]$</span>
+        <div>$a = x_0 < x_1 < x_2 < \cdots < x_n = b$</div>
+        <div>Subintervalos $S_i = [x_{i-1}, x_i]$, longitudes $\Delta x_i = x_i - x_{i-1}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Mallado</span>
+        <p class="card-body">El <em>mallado</em> de la partición es $\max_i \Delta x_i$, la mayor de las longitudes. Cuanto más pequeño el mallado, más fina la partición. El paso al límite consistirá en hacer $\max_i \Delta x_i \to 0$.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 03 — Sumas de Darboux */}
+<section id="darboux">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">03 · Darboux</p>
+      <h2 class="section-title display--sm">Sumas inferior y superior.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Sobre cada subintervalo, sustituye la curva por dos rectángulos: uno tan alto como el <strong>mínimo</strong> de $f$ ahí (queda por debajo de la curva) y otro tan alto como el <strong>máximo</strong> (queda por encima). La suma de las áreas son las dos sumas de Darboux.</p>
+
+      <div class="formula-block">
+        <span class="label">Definiciones</span>
+        <div class="grid-2">
+          <div>$m_i = \displaystyle\inf_{x \in S_i} f(x)$</div>
+          <div>$M_i = \displaystyle\sup_{x \in S_i} f(x)$</div>
+        </div>
+        <div class="grid-2">
+          <div>$L(f, P) = \displaystyle\sum_{i=1}^n m_i\,\Delta x_i$</div>
+          <div>$U(f, P) = \displaystyle\sum_{i=1}^n M_i\,\Delta x_i$</div>
+        </div>
+      </div>
+
+      <ThemedImage
+        lightSrc="/apuntes/integracion-de-una-variable/darboux-sums-light.png"
+        darkSrc="/apuntes/integracion-de-una-variable/darboux-sums-dark.png"
+        alt="Sumas de Darboux: rectángulos inferiores (en azul, por debajo del gráfico) y rectángulos superiores (en rosa, por encima del gráfico) sobre una partición de tres subintervalos."
+      />
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Geometría</span>
+          <p class="card-body">$L$ es el área de la <strong>escalera más alta</strong> que se queda por debajo del gráfico; $U$, la <strong>escalera más baja</strong> que lo cubre. Por construcción $L(f, P) \le U(f, P)$ para toda partición $P$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Brecha</span>
+          <p class="card-body">La diferencia $U(f, P) - L(f, P)$ mide cuánto espacio dejan ambivalente las escaleras. Refinar la partición reduce esa brecha. La integrabilidad pregunta si puede reducirse hasta cero.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 04 — Refinamiento */}
+<section id="refinamiento">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">04 · Refinamiento</p>
+      <h2 class="section-title display--sm">Apretar el sándwich.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Añadir puntos a una partición convierte $P_1$ en un <strong>refinamiento</strong> $P_2$. En los subintervalos más pequeños el ínfimo solo puede subir y el supremo solo puede bajar.</p>
+
+      <div class="formula-block">
+        <span class="label">Monotonía bajo refinamiento</span>
+        <div>$P_1 \subseteq P_2 \;\Longrightarrow\; L(f, P_1) \le L(f, P_2) \le U(f, P_2) \le U(f, P_1)$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Las dos cantidades clave</span>
+        <p class="card-body">Como cada $L$ es $\le$ cada $U$ (incluso para particiones distintas), tienen sentido las cantidades:</p>
+        <div class="formula">$\underline{L}(f) = \displaystyle\sup_{P} L(f, P), \qquad \overline{U}(f) = \inf_{P} U(f, P)$</div>
+        <p class="card-body">$\underline{L}(f)$ es el mejor que puede hacer la escalera inferior; $\overline{U}(f)$, el mejor de la superior. Y siempre $\underline{L}(f) \le \overline{U}(f)$.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 05 — Criterio de integrabilidad */}
+<section id="integrabilidad">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">05 · Definición</p>
+      <h2 class="section-title display--sm">Integral de Riemann.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Cuando los dos extremos del sándwich coinciden, ese valor común es la integral. Es la definición canónica de integrabilidad en sentido de Riemann.</p>
+
+      <div class="formula-block">
+        <span class="label">Definición</span>
+        <div>$f$ es <strong>Riemann-integrable</strong> en $[a, b]$ si $\underline{L}(f) = \overline{U}(f)$</div>
+        <div>$\displaystyle\int_a^b f(x)\,dx = \underline{L}(f) = \overline{U}(f)$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Criterio de Darboux</span>
+        <div>$f$ integrable $\iff$ $\forall\varepsilon > 0,\; \exists P : U(f, P) - L(f, P) < \varepsilon$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Lectura práctica</span>
+        <p class="card-body">Para demostrar que $f$ es integrable basta exhibir, para cada exigencia $\varepsilon$, una partición que cierre la brecha por debajo de esa cota. No hace falta calcular el ínfimo ni el supremo sobre todas las particiones.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 06 — Sumas de Riemann */}
+<section id="riemann">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">06 · Riemann</p>
+      <h2 class="section-title display--sm">Punto libre en cada subintervalo.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Una <strong>suma de Riemann</strong> elige un punto cualquiera $c_i \in [x_{i-1}, x_i]$ en cada subintervalo y suma $f(c_i)\,\Delta x_i$. No usa ínfimo ni supremo: usa <em>el valor que sea</em> en ese punto de muestra.</p>
+
+      <div class="formula-block">
+        <span class="label">Suma de Riemann</span>
+        <div>$S(f, P, \{c_i\}) = \displaystyle\sum_{i=1}^n f(c_i)\,\Delta x_i$</div>
+      </div>
+
+      <ThemedImage
+        lightSrc="/apuntes/integracion-de-una-variable/riemann-sums-light.png"
+        darkSrc="/apuntes/integracion-de-una-variable/riemann-sums-dark.png"
+        alt="Sumas de Riemann: rectángulos con altura tomada en el extremo izquierdo (azul) y en el extremo derecho (rosa) de cada subintervalo."
+      />
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Atrapada entre las dos Darboux</span>
+          <p class="card-body">Para toda partición y toda elección de puntos: $L(f, P) \le S(f, P, \{c_i\}) \le U(f, P)$. Cuando $f$ es integrable, el sándwich aprieta a cero y las sumas de Riemann no tienen escapatoria.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Convergencia</span>
+          <p class="card-body">Cuando el mallado tiende a cero, las sumas de Riemann convergen a la integral <strong>independientemente</strong> de cómo se elijan los puntos $c_i$.</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Integral como límite de Riemann</span>
+        <div>$\displaystyle\int_a^b f(x)\,dx = \lim_{\max_i \Delta x_i \to 0} \sum_{i=1}^n f(c_i)\,\Delta x_i$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Lectura de la notación</span>
+        <p class="card-body">El símbolo $\int$ es una «S» estilizada de <em>sum</em>; $dx$ es una anchura infinitesimal; $f(x)$ es la altura que se está sumando. La notación esconde la suma discreta justo en el límite.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 07 — Integrabilidad práctica */}
+<section id="condiciones">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">07 · Suficiencia</p>
+      <h2 class="section-title display--sm">Cuándo integra una función.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La definición es delicada — no toda función acotada es Riemann-integrable. Pero dos condiciones suficientes cubren todo lo que aparece en la práctica.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Continua ⟹ integrable</span>
+          <p class="card-body">Si $f$ es continua en $[a, b]$, entonces $f$ es Riemann-integrable en $[a, b]$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Acotada y a trozos ⟹ integrable</span>
+          <p class="card-body">Si $f$ es acotada en $[a, b]$ y continua salvo en un número finito de puntos, entonces $f$ es Riemann-integrable en $[a, b]$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 08 — Patología */}
+<section id="dirichlet">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">08 · Patología</p>
+      <h2 class="section-title display--sm">La función de Dirichlet.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">El ejemplo clásico que <em>no</em> es integrable, y la motivación histórica para inventar otra teoría de integración.</p>
+
+      <div class="formula-block">
+        <span class="label">$\mathbf{1}_{\mathbb{Q} \cap [0, 1]}$</span>
+        <div>$f(x) = \begin{cases} 1 & \text{si } x \in \mathbb{Q} \\ 0 & \text{si } x \notin \mathbb{Q} \end{cases}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Por qué falla</span>
+        <p class="card-body">En todo subintervalo, por pequeño que sea, hay racionales <em>e</em> irracionales: $m_i = 0$ y $M_i = 1$ siempre. Resulta que $L \equiv 0$ y $U \equiv 1$ para toda partición. La brecha nunca se cierra.</p>
+      </div>
+
+      <div class="card">
+        <span class="card-title">La salida: Lebesgue</span>
+        <p class="card-body">La integral de Lebesgue es precisamente el marco que hace integrables funciones como esta — y, una vez en él, $\int_0^1 \mathbf{1}_{\mathbb{Q}} = 0$ porque «casi todo» punto es irracional.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 09 — Área con signo */}
+<section id="signo">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">09 · Signo</p>
+      <h2 class="section-title display--sm">Área con signo.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Cuando $f \ge 0$, la integral es el área bajo el gráfico. Cuando $f$ se hunde por debajo del eje, esas contribuciones entran con <strong>signo menos</strong>.</p>
+
+      <div class="formula-block">
+        <span class="label">Cancelación clásica</span>
+        <div>$\displaystyle\int_0^{2\pi} \sin x\,dx = 0$</div>
+        <div>La campana positiva en $[0, \pi]$ y la negativa en $[\pi, 2\pi]$ se cancelan exactamente.</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Convenios sobre los límites</span>
+        <p class="card-body">Por convenio se extiende la definición:</p>
+        <div class="formula">$\displaystyle\int_a^a f = 0, \qquad \int_b^a f = -\int_a^b f$</div>
+        <p class="card-body">Esto hace que la aditividad funcione para $a, b, c$ en cualquier orden, y elimina la hipótesis de orden de los enunciados posteriores.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 10 — Propiedades */}
+<section id="propiedades">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">10 · Propiedades</p>
+      <h2 class="section-title display--sm">Las tres reglas de manipulación.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Tres propiedades que se usan continuamente al manipular integrales y que se demuestran directamente desde las sumas de Riemann.</p>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Linealidad</span>
+          <div class="formula">$\displaystyle\int_a^b (\alpha f + \beta g) = \alpha\!\!\int_a^b\!\! f + \beta\!\!\int_a^b\!\! g$</div>
+          <p class="card-body">La integral se reparte por sumas y saca constantes — exactamente como la derivada.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Aditividad</span>
+          <div class="formula">$\displaystyle\int_a^b\!\! f + \int_b^c\!\! f = \int_a^c\!\! f$</div>
+          <p class="card-body">Concatenar dos intervalos contiguos es lo mismo que integrar sobre el intervalo unión.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Monotonía</span>
+          <div class="formula">$f \le g \implies \displaystyle\int_a^b\!\! f \le \int_a^b\!\! g$</div>
+          <p class="card-body">En particular: $\bigl|\int_a^b f\bigr| \le \int_a^b |f|$ — desigualdad triangular para integrales.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 11 — TFC: forma constructiva — enunciado */}
+<section id="tfc-constructiva">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">11 · Forma constructiva</p>
+      <h2 class="section-title display--sm">Construir una primitiva.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">El teorema fundamental del cálculo tiene dos caras. La <strong>forma constructiva</strong> dice que integrar con un límite variable construye una primitiva: la función «área acumulada» tiene como derivada al integrando.</p>
+
+      <div class="formula-block">
+        <span class="label">forma constructiva</span>
+        <div>Sea $f$ continua en $[a, b]$. Defínase $G(x) = \displaystyle\int_a^x f(t)\,dt$ para $x \in [a, b]$.</div>
+        <div>Entonces $G$ es derivable en $[a, b]$ con $G'(x) = f(x)$.</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">En palabras</span>
+        <p class="card-body">Integrar con un límite superior variable <em>construye</em> una primitiva. Toda función continua tiene primitiva — concretamente, su propia acumulación desde un punto base.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 12 — Demostración constructiva */}
+<section id="prueba-constructiva">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">12 · Demostración</p>
+      <h2 class="section-title display--sm">La lámina y el valor medio.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La prueba se reduce a aplicar la definición de derivada a $G$ y reconocer una <strong>media</strong>. Solo necesita aditividad de la integral y continuidad de $f$.</p>
+
+      <div class="formula-block">
+        <span class="label">Cociente incremental de $G$</span>
+        <div>$\displaystyle\frac{G(x + h) - G(x)}{h} = \frac{1}{h}\int_x^{x+h} f(t)\,dt$</div>
+        <div>(por aditividad de la integral)</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Geometría: una lámina</span>
+          <p class="card-body">$G(x+h) - G(x)$ es la fina lámina de área entre $x$ y $x+h$. Su base mide $h$ y su altura, aproximadamente $f(x)$. Al dividir por $h$ obtenemos el <strong>valor medio</strong> de $f$ en $[x, x+h]$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Cierre por continuidad</span>
+          <p class="card-body">La continuidad de $f$ en $x$ fuerza ese promedio a converger a $f(x)$ cuando $h \to 0$. Formalmente: un argumento $\varepsilon$-$\delta$ acota $|f(t) - f(x)| < \varepsilon$ para $|t - x| < \delta$ y exprime el promedio.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Lo poco que usa</span>
+        <p class="card-body">Solo la definición de derivada, la aditividad de la integral y la continuidad de $f$. Sin teorema del valor medio, sin nada que llegue después. Por eso es la puerta de entrada natural.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 13 — Existencia de primitivas */}
+<section id="existencia">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">13 · Existencia</p>
+      <h2 class="section-title display--sm">Toda continua tiene primitiva.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La forma constructiva tiene una consecuencia llamativa: <strong>existencia es independiente de fórmula cerrada</strong>. Una función continua siempre tiene primitiva, aunque ningún arreglo finito de funciones elementales pueda escribirla.</p>
+
+      <div class="formula-block">
+        <span class="label">Continuas sin primitiva elemental</span>
+        <div>$e^{-x^2}, \qquad \dfrac{\sin x}{x}, \qquad \sin(x^2), \qquad \cos(x^2), \qquad \dfrac{1}{\ln x}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Existencia ≠ expresabilidad</span>
+        <p class="card-body">La existencia es absoluta (la garantiza el teorema fundamental del cálculo constructivo). Que se pueda <em>escribir</em> con un diccionario fijo de funciones — polinomios, trigonométricas, exponenciales, sus inversas, sus combinaciones finitas — es otra pregunta, y para algunas funciones la respuesta es <strong>provablemente no</strong> (teorema de Liouville).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 14 — Funciones especiales */}
+<section id="funciones-especiales">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">14 · Funciones</p>
+      <h2 class="section-title display--sm">Nombrar primitivas.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Si una primitiva no se puede escribir, se la <strong>nombra como integral</strong>. Así entran al vocabulario varias funciones especiales — y sus derivadas son inmediatas por el teorema fundamental del cálculo constructivo.</p>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Función error</span>
+          <div class="formula">$\displaystyle\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}}\int_0^x e^{-t^2}\,dt$</div>
+          <p class="card-body">Ubicua en probabilidad, gobierna las colas de la gaussiana. Derivada inmediata: $\operatorname{erf}'(x) = \tfrac{2}{\sqrt{\pi}}\,e^{-x^2}$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Integral logarítmica</span>
+          <div class="formula">$\displaystyle\operatorname{Li}(x) = \int_2^x \frac{dt}{\ln t}$</div>
+          <p class="card-body">Aproxima el número de primos hasta $x$ (teorema de los números primos): $\pi(x) \sim \operatorname{Li}(x)$.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">Integrales de Fresnel</span>
+          <div class="formula">$\displaystyle C(x) = \int_0^x \cos(t^2)\,dt$</div>
+          <div class="formula">$\displaystyle S(x) = \int_0^x \sin(t^2)\,dt$</div>
+          <p class="card-body">Aparecen al describir la difracción de la luz cerca del borde de un obstáculo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 15 — Lema de la constante */}
+<section id="lema-constante">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">15 · Lema</p>
+      <h2 class="section-title display--sm">Primitivas: difieren en constante.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Bisagra entre las dos formas del teorema fundamental del cálculo. Garantiza que cualquier primitiva sirve a la hora de evaluar.</p>
+
+      <div class="formula-block">
+        <span class="label">Lema</span>
+        <div>$F, G$ derivables en un intervalo $I$, $F' = G'$ en $I \;\Longrightarrow\; F - G$ es constante en $I$.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Demostración</span>
+          <p class="card-body">$h = F - G$ tiene $h' = 0$ en $I$. Por el TVM de Lagrange, para todo $a, b \in I$ existe $c$ entre ellos con $h(b) - h(a) = h'(c)(b - a) = 0$. Luego $h$ es constante.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">La constante es estructural</span>
+          <p class="card-body">La derivación mata constantes, así que su inversa no puede recuperarlas. Toda $F + C$ tiene la misma derivada y la integral solo fija $F$ salvo esa ambigüedad unidimensional.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 16 — TFC: forma evaluativa — enunciado */}
+<section id="tfc-evaluativa">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">16 · Forma evaluativa</p>
+      <h2 class="section-title display--sm">Evaluar en los extremos.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La segunda cara del teorema fundamental del cálculo es la que se usa para <strong>calcular</strong>: encontrada una primitiva, basta restar sus valores en los extremos.</p>
+
+      <div class="formula-block">
+        <span class="label">Forma evaluativa</span>
+        <div>$f$ continua en $[a, b]$, $F$ una primitiva cualquiera ($F' = f$).</div>
+        <div>$\displaystyle\int_a^b f(x)\,dx = F(b) - F(a) = F(x)\Big|_a^b$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">$\displaystyle\int_a^b x^2\,dx$</span>
+          <div class="formula">$\displaystyle\left.\frac{x^3}{3}\right|_a^b = \frac{b^3 - a^3}{3}$</div>
+          <p class="card-body">Compárese con el cálculo desde la definición: aquí no hay sumas, no hay límites. Solo una primitiva y dos evaluaciones.</p>
+        </div>
+        <div class="card">
+          <span class="card-title">$\displaystyle\int_0^\pi \sin x\,dx$</span>
+          <div class="formula">$\bigl[-\cos x\bigr]_0^\pi = -(-1) - (-1) = 2$</div>
+          <p class="card-body">El área bajo la primera campana del seno. Inmediato una vez sabemos que $-\cos$ es primitiva de $\sin$.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 17 — Doble demostración */}
+<section id="prueba-evaluativa">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">17 · Demostración</p>
+      <h2 class="section-title display--sm">Dos caminos a la forma evaluativa.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La forma evaluativa admite dos demostraciones — una corta que reutiliza la constructiva, y otra clásica e independiente que solo necesita el teorema del valor medio de Lagrange y la integrabilidad de las funciones continuas.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Vía la forma constructiva</span>
+          <p class="card-body">$G(x) = \int_a^x f$ cumple $G' = f$ por TFC constructiva. Por el lema de la constante, $F - G \equiv c$. Evaluando en $a$, $c = F(a)$ porque $G(a) = 0$. Luego $F(b) - F(a) = G(b) = \int_a^b f$. <strong>QED.</strong></p>
+        </div>
+        <div class="card">
+          <span class="card-title">Vía telescopio + TVM</span>
+          <p class="card-body">$F(b) - F(a) = \sum [F(x_i) - F(x_{i-1})]$ telescopiando una partición. El TVM da $c_i$ con $F(x_i) - F(x_{i-1}) = f(c_i)\,\Delta x_i$, así que la suma es exactamente una de Riemann. La integrabilidad de $f$ continua hace que esa suma converja a $\int_a^b f$ cuando el mallado tiende a cero. <strong>QED.</strong></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Dónde entra la integrabilidad</span>
+        <p class="card-body">En el segundo argumento, lo único que requiere integrabilidad es identificar el límite de la suma de Riemann con la integral. Para cada partición, la suma <em>ya</em> es exactamente $F(b) - F(a)$; la integrabilidad solo garantiza que ese valor común coincida con $\int_a^b f$.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 18 — Cambio de paradigma */}
+<section id="paradigma">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">18 · Consecuencia</p>
+      <h2 class="section-title display--sm">De límites a primitivas.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La forma evaluativa convierte la integración de un problema de límites en un problema de búsqueda. Ese cambio de paradigma es lo que da forma a todo el cálculo integral que sigue.</p>
+
+      <div class="card">
+        <span class="card-title">Lo que compra la forma evaluativa</span>
+        <p class="card-body">Sin ella, calcular $\int_0^b x^2\,dx$ requería sumar $1^2 + 2^2 + \cdots + n^2$ y tomar un límite. Con ella, sale de «una primitiva de $x^2$ es $x^3/3$». La integración pasa de ser un problema de límites a una <strong>búsqueda de primitivas</strong>.</p>
+      </div>
+
+      <div class="card">
+        <span class="card-title">El catálogo de técnicas</span>
+        <p class="card-body">Eso cambia el carácter práctico de la asignatura: el resto del cálculo integral de una variable es un catálogo de técnicas — sustitución, integración por partes, fracciones simples, identidades trigonométricas — para encontrar primitivas. Las dos primeras se ven a continuación; son las que cargan con esencialmente todos los cálculos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 19 — Dualidad */}
+<section id="dualidad">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">19 · Dualidad</p>
+      <h2 class="section-title display--sm">Integrar y derivar son inversas.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Las dos caras del teorema fundamental del cálculo, leídas juntas, dicen que sobre funciones continuas las operaciones «integrar con un extremo variable» y «derivar» son <strong>mutuamente inversas</strong>, salvo una constante aditiva.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">Integrar y luego derivar</span>
+          <p class="card-body">Forma constructiva: construye la acumulación de $f$ y luego deriva — $f$ se recupera <strong>exactamente</strong>.</p>
+          <div class="formula">$\displaystyle\frac{d}{dx}\int_a^x f(t)\,dt = f(x)$</div>
+        </div>
+        <div class="card">
+          <span class="card-title">Derivar y luego integrar</span>
+          <p class="card-body">Forma evaluativa: deriva $F$ y luego integra — $F$ se recupera <strong>salvo</strong> la constante $F(a)$.</p>
+          <div class="formula">$\displaystyle\int_a^x F'(t)\,dt = F(x) - F(a)$</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">El hecho organizador del cálculo de una variable</span>
+        <p class="card-body">Esta dualidad es lo que articula la asignatura entera. La pregunta natural que abre — ¿qué noción de integración mantiene la dualidad cuando $f$ deja de ser continua? — es precisamente la puerta de entrada a la integral de Lebesgue.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 20 — Sustitución */}
+<section id="sustitucion">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">20 · Técnica</p>
+      <h2 class="section-title display--sm">Sustitución: la cadena al revés.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">La sustitución es la <strong>regla de la cadena leída al revés</strong> como regla de integración, igual que la integración por partes es la regla del producto leída al revés.</p>
+
+      <div class="formula-block">
+        <span class="label">Origen</span>
+        <div>Si $F' = g$, la regla de la cadena da $\dfrac{d}{dx}F(u(x)) = g(u(x))\,u'(x)$.</div>
+        <div>Integrando ambos lados con respecto a $x$ y aplicando la forma evaluativa:</div>
+        <div>$\displaystyle\int g(u(x))\,u'(x)\,dx = F(u(x)) + C = \int g(u)\,du$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Regla — versión indefinida</span>
+        <div>$\displaystyle\int g(u(x))\,u'(x)\,dx = \int g(u)\,du$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">Regla — versión definida</span>
+        <div>$\displaystyle\int_{x_1}^{x_2} g(u(x))\,u'(x)\,dx = \int_{u_1}^{u_2} g(u)\,du \quad\text{con } u_i = u(x_i)$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Lectura</span>
+        <p class="card-body">El factor $u'(x)$ queda <em>absorbido</em> en $du$: en notación diferencial, $du = u'(x)\,dx$. Es el precio que se paga por cambiar de variable, y es exactamente la derivada que la regla de la cadena obliga a incluir. Si transformamos los límites a la vez que la variable, no hace falta deshacer el cambio al final.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 21 — Sustitución en práctica */}
+<section id="sustitucion-ejemplo">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">21 · Ejemplo</p>
+      <h2 class="section-title display--sm">Sustitución en cuatro pasos.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Calcular $\displaystyle\int_1^2 (x^3 + 2)^4\,x^2\,dx$. Sin sustitución haría falta desarrollar $(x^3 + 2)^4$ — un polinomio de 15 términos — y antiderivar uno por uno.</p>
+
+      <div class="formula-block">
+        <span class="label">1 · Elegir la sustitución</span>
+        <div>$u = x^3 + 2 \;\Longrightarrow\; du = 3x^2\,dx$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">2 · Despejar la pieza presente</span>
+        <div>$x^2\,dx = \dfrac{du}{3}$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">3 · Transformar los límites</span>
+        <div>$x = 1 \implies u = 1^3 + 2 = 3, \qquad x = 2 \implies u = 2^3 + 2 = 10$</div>
+      </div>
+
+      <div class="formula-block">
+        <span class="label">4 · Sustituir y antiderivar</span>
+        <div>$\displaystyle\int_1^2 (x^3 + 2)^4\,x^2\,dx = \int_3^{10} u^4\,\frac{du}{3} = \frac{1}{3}\left[\frac{u^5}{5}\right]_3^{10} = \frac{10^5 - 3^5}{15}$</div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Sombra unidimensional</span>
+        <p class="card-body">La sustitución es la sombra unidimensional de la <strong>fórmula del cambio de variable</strong> en $\mathbb{R}^n$: el factor $u'(x)$ se generaliza al valor absoluto del determinante jacobiano de la transformación de coordenadas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule" />
+
+{/* 22 — Integración por partes */}
+<section id="partes">
+  <div class="container grid-12">
+    <div class="section-label">
+      <p class="eyebrow">22 · Técnica</p>
+      <h2 class="section-title display--sm">Partes: el producto al revés.</h2>
+    </div>
+    <div class="section-body stack">
+      <p class="section-lede">Leyendo la regla del producto $(uv)' = u'v + uv'$ como una identidad de integración, mover la derivada de $v$ a $u$ trueca una integral que no sabemos hacer por otra que sí.</p>
+
+      <div class="formula-block">
+        <span class="label">Fórmula</span>
+        <div>$\displaystyle\int_a^b u(x)\,v'(x)\,dx = \bigl[u(x)\,v(x)\bigr]_a^b - \int_a^b u'(x)\,v(x)\,dx$</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-title">$\displaystyle\int x\,e^x\,dx$</span>
+          <p class="card-body">Tomar $u = x$ (se simplifica al derivar) y $v' = e^x$ (se mantiene al integrar). Entonces $u' = 1$, $v = e^x$, y queda:</p>
+          <div class="formula">$x\,e^x - \displaystyle\int e^x\,dx = (x - 1)\,e^x + C$</div>
+        </div>
+        <div class="card">
+          <span class="card-title">$\displaystyle\int \ln x\,dx$</span>
+          <p class="card-body">Truco: tomar $u = \ln x$ y $v' = 1$ (¡no hay producto, lo inventamos!). Entonces $u' = 1/x$, $v = x$, y queda:</p>
+          <div class="formula">$x\ln x - \displaystyle\int 1\,dx = x\ln x - x + C$</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-title">Más allá: estimaciones de Fourier</span>
+        <p class="card-body">La integración por partes es también compañera constante de las estimaciones de coeficientes de Fourier: convertir derivadas en factores $1/n$ es lo que da la velocidad de decaimiento de los coeficientes de una función suave.</p>
+      </div>
+    </div>
+  </div>
+</section>

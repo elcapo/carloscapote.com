@@ -1,0 +1,104 @@
+---
+/**
+ * ThemedImage — imagen que se adapta al tema claro/oscuro.
+ *
+ * Acepta dos fuentes opcionales (`lightSrc`, `darkSrc`):
+ *   - Si se proporcionan ambas, se renderizan las dos en el DOM y se muestra
+ *     solo la que corresponda al tema activo mediante CSS (sin parpadeo en
+ *     SSR, sin JS).
+ *   - Si solo se proporciona una, se usa esa imagen siempre.
+ *
+ * El intercambio respeta la misma convención de tema que el resto del sitio
+ * (`Header.astro`): el override manual `:root[data-theme="dark"|"light"]`
+ * gana sobre la preferencia del sistema (`prefers-color-scheme`).
+ *
+ * Nota: en MDX las propiedades se pasan en camelCase, p. ej.
+ *   <ThemedImage lightSrc="/foo-claro.png" darkSrc="/foo-oscuro.png" alt="..." />
+ */
+
+interface Props {
+  lightSrc?: string;
+  darkSrc?: string;
+  alt: string;
+  width?: number | string;
+  height?: number | string;
+  loading?: 'lazy' | 'eager';
+  decoding?: 'async' | 'sync' | 'auto';
+  class?: string;
+}
+
+const {
+  lightSrc,
+  darkSrc,
+  alt,
+  width,
+  height,
+  loading = 'lazy',
+  decoding = 'async',
+  class: className,
+} = Astro.props;
+
+if (!lightSrc && !darkSrc) {
+  throw new Error('<ThemedImage> requiere al menos `lightSrc` o `darkSrc`.');
+}
+
+// Si solo hay una fuente, renderizamos un único <img> sin clases de tema:
+// no tiene sentido cargar dos veces el mismo recurso ni gastar CSS en él.
+const onlyOne = !lightSrc || !darkSrc;
+const singleSrc = lightSrc ?? darkSrc;
+---
+
+{onlyOne ? (
+  <img
+    src={singleSrc}
+    alt={alt}
+    width={width}
+    height={height}
+    loading={loading}
+    decoding={decoding}
+    class:list={['themed-image', className]}
+  />
+) : (
+  <>
+    <img
+      src={lightSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding={decoding}
+      class:list={['themed-image', 'themed-image--light', className]}
+    />
+    <img
+      src={darkSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding={decoding}
+      class:list={['themed-image', 'themed-image--dark', className]}
+      aria-hidden="true"
+    />
+  </>
+)}
+
+<style is:global>
+  /* Ocupar todo el ancho del contenedor; la regla global `img { height: auto }`
+     en `global.css` se encarga de mantener la relación de aspecto. */
+  .themed-image { width: 100%; }
+
+  /* Por defecto (sin override y sin preferencia oscura) mostramos la clara y
+     ocultamos la oscura. Mismo patrón que el logo en `Header.astro`. */
+  .themed-image--light { display: block; }
+  .themed-image--dark  { display: none;  }
+
+  /* Override manual del usuario — gana sobre `prefers-color-scheme`. */
+  :root[data-theme='dark'] .themed-image--light { display: none;  }
+  :root[data-theme='dark'] .themed-image--dark  { display: block; }
+
+  /* Preferencia del sistema, solo cuando no hay override claro explícito. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .themed-image--light { display: none;  }
+    :root:not([data-theme='light']) .themed-image--dark  { display: block; }
+  }
+</style>
