@@ -1,0 +1,109 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { leccionSlug } from './leccion-helpers';
+
+interface Props {
+  curso: CollectionEntry<'cursos'>;
+  prev?: CollectionEntry<'lecciones'>;
+  next?: CollectionEntry<'lecciones'>;
+}
+
+const { curso, prev, next } = Astro.props;
+const cursoSlug = curso.id;
+const cursoHref = `/cursos/${cursoSlug}`;
+---
+
+<nav class="leccion-nav" aria-label="Navegación entre lecciones">
+  <div class="leccion-nav-row">
+    {prev ? (
+      <a
+        href={`/cursos/${cursoSlug}/${leccionSlug(prev)}`}
+        class="leccion-nav-link leccion-nav-prev"
+      >
+        <span class="leccion-nav-dir mono">← Anterior</span>
+        <span class="leccion-nav-title">{prev.data.title}</span>
+        {next && prev.data.bloque !== next.data.bloque && (
+          <span class="leccion-nav-bloque mono">{prev.data.bloque}</span>
+        )}
+      </a>
+    ) : (
+      <span class="leccion-nav-link leccion-nav-prev leccion-nav-empty" aria-hidden="true"></span>
+    )}
+
+    {next ? (
+      <a
+        href={`/cursos/${cursoSlug}/${leccionSlug(next)}`}
+        class="leccion-nav-link leccion-nav-next"
+      >
+        <span class="leccion-nav-dir mono">Siguiente →</span>
+        <span class="leccion-nav-title">{next.data.title}</span>
+        {prev && next.data.bloque !== prev.data.bloque && (
+          <span class="leccion-nav-bloque mono">{next.data.bloque}</span>
+        )}
+      </a>
+    ) : (
+      <a href={cursoHref} class="leccion-nav-link leccion-nav-next">
+        <span class="leccion-nav-dir mono">Volver al curso</span>
+        <span class="leccion-nav-title">{curso.data.title}</span>
+      </a>
+    )}
+  </div>
+</nav>
+
+<style>
+  .leccion-nav {
+    padding-block: 3rem 2rem;
+  }
+  .leccion-nav-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 720px) {
+    .leccion-nav-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .leccion-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+    text-decoration: none;
+    transition: color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      background var(--dur) var(--ease);
+  }
+  .leccion-nav-link:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-muted);
+  }
+  .leccion-nav-empty {
+    border: 1px dashed transparent;
+    pointer-events: none;
+  }
+
+  .leccion-nav-dir {
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+  }
+  .leccion-nav-next { text-align: right; }
+  .leccion-nav-title {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .leccion-nav-bloque {
+    font-size: 0.6875rem;
+    color: var(--color-muted-foreground);
+  }
+  .leccion-nav-bloque::before {
+    content: 'bloque: ';
+    opacity: 0.7;
+  }
+</style>

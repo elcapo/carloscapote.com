@@ -1,0 +1,343 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+import { visible } from '../../../components/cursos/draft-filter';
+import { agruparPorBloque, leccionSlug } from '../../../components/cursos/leccion-helpers';
+
+export async function getStaticPaths() {
+  const cursos = await getCollection('cursos', visible);
+  return cursos.map((entry) => ({
+    params: { curso: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry: curso } = Astro.props;
+const { Content } = await render(curso);
+
+/* Lecciones publicadas del curso, agrupadas por bloque. */
+const todas = await getCollection('lecciones', visible);
+const lecciones = todas
+  .filter((l) => l.data.curso === curso.id)
+  .sort((a, b) => {
+    const ba = a.data.bloque;
+    const bb = b.data.bloque;
+    if (ba !== bb) return 0; /* el orden por bloque lo decide agruparPorBloque */
+    return (a.data.orden ?? 0) - (b.data.orden ?? 0);
+  });
+
+const bloques = agruparPorBloque(lecciones, curso.data.bloques);
+
+/* Primera lección útil: la del primer bloque que tenga lecciones. */
+const primerLeccion = bloques.find((b) => b.lecciones.length > 0)?.lecciones[0];
+const leccionPreparacion = lecciones.find((l) =>
+  l.id.includes('00-preparar-el-entorno'),
+);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<Layout title={`${curso.data.title} — Carlos Capote`} description={curso.data.description}>
+  <article class="curso">
+    <header class="curso-head">
+      <div class="container">
+        <p class="eyebrow">
+          <a href="/cursos">← Volver a cursos</a>
+        </p>
+        <h1 class="curso-title display">{curso.data.title}</h1>
+        <p class="curso-lede">{curso.data.description}</p>
+
+        <div class="curso-meta">
+          <span class="mono">{fmt(curso.data.pubDate)}</span>
+          {curso.data.updatedDate && (
+            <span class="mono">actualizado {fmt(curso.data.updatedDate)}</span>
+          )}
+          {curso.data.tags.map(t => <a href={`/cursos/tags/${encodeURIComponent(t)}`} class="tag">{t}</a>)}
+        </div>
+
+        {curso.data.repo && (
+          <p class="curso-repo">
+            <a href={curso.data.repo} rel="noopener">
+              Repositorio del curso ↗
+            </a>
+          </p>
+        )}
+
+        {(primerLeccion || leccionPreparacion) && (
+          <div class="curso-actions">
+            {leccionPreparacion && (
+              <a
+                href={`/cursos/${curso.id}/${leccionSlug(leccionPreparacion)}`}
+                class="btn"
+              >
+                Preparar el entorno →
+              </a>
+            )}
+            {primerLeccion && !leccionPreparacion && (
+              <a
+                href={`/cursos/${curso.id}/${leccionSlug(primerLeccion)}`}
+                class="btn"
+              >
+                Empezar el curso →
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </header>
+
+    <hr class="rule" />
+
+    {/* --- Temario --- */}
+    <section class="curso-temario">
+      <div class="container">
+        <header class="temario-header">
+          <p class="eyebrow">Temario</p>
+          <h2 class="display display--md">Lecciones</h2>
+        </header>
+
+        {bloques.length === 0 ? (
+          <p class="temario-vacio">Aún no se han publicado lecciones de este curso.</p>
+        ) : (
+          <ol class="temario-grupos">
+            {bloques.map((bloque) => (
+              <li class="temario-grupo">
+                <h3 class="temario-grupo-nombre">{bloque.nombre}</h3>
+                <ol class="temario-lista">
+                  {bloque.lecciones.map((l) => {
+                    const href = `/cursos/${curso.id}/${leccionSlug(l)}`;
+                    const hasVideo = Boolean(l.data.videoUrl || l.data.videoFile);
+                    return (
+                      <li class="temario-item" data-href={href}>
+                        <a href={href} class="temario-item-link">
+                          <span class="temario-item-titulo">{l.data.title}</span>
+                          <span class="temario-item-meta">
+                            {hasVideo && (
+                              <span class="temario-item-video" aria-label="con vídeo" title="lección con vídeo">▶ vídeo</span>
+                            )}
+                            {l.data.duration && (
+                              <span class="mono">{l.data.duration}</span>
+                            )}
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </section>
+
+    <hr class="rule" />
+
+    {/* --- Presentación (body del index.md del curso) --- */}
+    <div class="container narrow">
+      <div class="prose curso-prose">
+        <Content />
+      </div>
+
+      {curso.data.license && (
+        <p class="curso-license mono">
+          Licencia: {curso.data.license}
+        </p>
+      )}
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .curso-head {
+    padding-block: clamp(4rem, 10vw, 8rem) clamp(3rem, 6vw, 5rem);
+  }
+  .curso-title {
+    margin-top: 1.5rem;
+  }
+  .curso-lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 2vw, 1.75rem);
+    line-height: 1.45;
+    color: var(--color-secondary);
+    max-width: 50ch;
+  }
+  .curso-meta {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+  .tag:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .curso-repo {
+    margin-top: 1.5rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+  .curso-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  /* Temario */
+  .curso-temario {
+    padding-block: clamp(3rem, 6vw, 5rem);
+  }
+  .temario-header { margin-bottom: 2.5rem; }
+  .temario-header h2 { margin-top: 1rem; }
+  .temario-vacio {
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+
+  .temario-grupos {
+    list-style: none;
+  }
+  .temario-grupo + .temario-grupo { margin-top: 2.5rem; }
+  .temario-grupo-nombre {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0.5rem;
+  }
+  .temario-lista {
+    list-style: none;
+  }
+  .temario-item {
+    border-bottom: 1px solid var(--color-border);
+  }
+  .temario-item-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0.5rem;
+    color: var(--color-foreground);
+    text-decoration: none;
+    transition: color var(--dur) var(--ease), background var(--dur) var(--ease),
+      padding var(--dur) var(--ease);
+  }
+  .temario-item-link:hover {
+    color: var(--color-accent);
+    background: var(--color-muted);
+    padding-inline: 1rem;
+  }
+  .temario-item-titulo {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: clamp(1rem, 1.4vw, 1.125rem);
+  }
+  .temario-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .temario-item-video {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+
+  /* Presentación */
+  .curso-prose {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    font-size: 1.125rem;
+    line-height: 1.75;
+    color: var(--color-foreground);
+  }
+  .curso-prose :global(h2) {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    margin-top: 3.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .curso-prose :global(h3) {
+    font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+    font-weight: 500;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  .curso-prose :global(p) { margin-bottom: 1.5rem; max-width: 68ch; }
+  .curso-prose :global(ul),
+  .curso-prose :global(ol) { margin-bottom: 1.5rem; padding-left: 1.5rem; max-width: 68ch; }
+  .curso-prose :global(li) { margin-bottom: 0.5rem; }
+  .curso-prose :global(strong) { font-weight: 700; color: var(--color-foreground); }
+  .curso-prose :global(blockquote) {
+    margin: 2rem 0;
+    padding: 1rem 1.5rem;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-muted);
+    color: var(--color-secondary);
+  }
+  .curso-prose :global(blockquote p) { margin: 0; }
+  .curso-prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.125rem 0.375rem;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .curso-prose :global(pre) {
+    margin: 2rem 0;
+    padding: 1.25rem;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+  }
+  .curso-prose :global(pre code) { background: transparent; border: none; padding: 0; }
+  .curso-prose :global(a) { text-decoration: underline; text-underline-offset: 3px; }
+  .curso-prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.95rem;
+  }
+  .curso-prose :global(th) {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted-foreground);
+    text-align: left;
+    padding: 0.625rem 1rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .curso-prose :global(td) {
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-foreground);
+  }
+  .curso-prose :global(tr:last-child td) { border-bottom: none; }
+
+  .curso-license {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-muted-foreground);
+  }
+</style>

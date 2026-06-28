@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import CursoLayout from '../../../layouts/CursoLayout.astro';
+import { visible } from '../../../components/cursos/draft-filter';
+import {
+  agruparPorBloque,
+  leccionSlug,
+  ordenEfectivo,
+  vecinos,
+} from '../../../components/cursos/leccion-helpers';
+
+export async function getStaticPaths() {
+  const lecciones = await getCollection('lecciones', visible);
+  return lecciones.map((entry) => ({
+    params: {
+      curso: entry.data.curso,
+      leccion: leccionSlug(entry),
+    },
+    props: { entry },
+  }));
+}
+
+const { entry: leccion } = Astro.props;
+
+/* Curso asociado a la lección. */
+const cursos = await getCollection('cursos');
+const curso = cursos.find((c) => c.id === leccion.data.curso);
+if (!curso) {
+  throw new Error(
+    `Lección "${leccion.id}" referencia curso "${leccion.data.curso}" que no existe.`,
+  );
+}
+
+/* Todas las lecciones del curso, ordenadas por bloque (respetando
+   curso.data.bloques) y por ordenEfectivo dentro de cada bloque. */
+const todasLasLecciones = await getCollection('lecciones', visible);
+const leccionesCurso = todasLasLecciones
+  .filter((l) => l.data.curso === curso.id)
+  .sort((a, b) => {
+    const bloques = curso.data.bloques;
+    const ia = bloques.indexOf(a.data.bloque);
+    const ib = bloques.indexOf(b.data.bloque);
+    const ba = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
+    const bb = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
+    if (ba !== bb) return ba - bb;
+    return ordenEfectivo(a) - ordenEfectivo(b);
+  });
+
+/* Lista plana (mismo orden que el menú) para encontrar prev/next. */
+const bloques = agruparPorBloque(leccionesCurso, curso.data.bloques);
+const plana = bloques.flatMap((b) => b.lecciones);
+const { prev, next } = vecinos(plana, leccion.id);
+---
+
+<CursoLayout
+  curso={curso}
+  leccion={leccion}
+  temario={plana}
+  prev={prev}
+  next={next}
+/>

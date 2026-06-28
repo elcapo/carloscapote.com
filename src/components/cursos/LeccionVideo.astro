@@ -1,0 +1,106 @@
+---
+/* Reproductor de lección. Reacciona al frontmatter:
+   - videoUrl  → iframe incrustado (YouTube, Vimeo…)
+   - videoFile → <video> nativo, self-hosted en /public */
+interface Props {
+  videoUrl?: string;
+  videoFile?: string;
+  duration?: string;
+  poster?: string;
+}
+
+const { videoUrl, videoFile, duration, poster } = Astro.props;
+
+/* Construye el embed de YouTube a partir de una URL normal (watch?v=) o
+   corta (youtu.be). Vimeo se pasa tal cual si ya es /embed/. */
+function embedYouTube(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (u.hostname.endsWith('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      if (u.pathname.startsWith('/embed/')) return url;
+    }
+    if (u.hostname.endsWith('vimeo.com')) {
+      const id = u.pathname.split('/').filter(Boolean).pop();
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+    if (u.pathname.includes('/embed/')) return url;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const embed = videoUrl ? embedYouTube(videoUrl) : null;
+---
+
+{embed && (
+  <div class="video-frame" data-provider="embed">
+    <div class="video-aspect">
+      <iframe
+        src={embed}
+        title="Vídeo de la lección"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+        allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  </div>
+)}
+
+{videoFile && !embed && (
+  <div class="video-frame" data-provider="native">
+    <video
+      controls
+      preload="metadata"
+      poster={poster}
+      playsinline
+    >
+      <source src={videoFile} type="video/mp4" />
+      Tu navegador no soporta vídeo HTML5. <a href={videoFile}>Descargar</a>.
+    </video>
+  </div>
+)}
+
+{duration && (
+  <p class="video-duration mono" aria-hidden="true">{duration}</p>
+)}
+
+<style>
+  .video-frame {
+    margin-block: 1.5rem 0;
+    width: 100%;
+    max-width: min(960px, calc(100vw - 6rem));
+    margin-inline: auto;
+  }
+  .video-aspect {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .video-aspect iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .video-frame video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .video-duration {
+    margin-top: 0.75rem;
+    text-align: right;
+  }
+</style>

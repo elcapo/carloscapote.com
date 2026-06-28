@@ -1,0 +1,370 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { agruparPorBloque, leccionSlug } from './leccion-helpers';
+
+interface Props {
+  curso: CollectionEntry<'cursos'>;
+  lecciones: CollectionEntry<'lecciones'>[];
+  actualId?: string;
+}
+
+const { curso, lecciones, actualId } = Astro.props;
+const cursoSlug = curso.id;
+const bloques = agruparPorBloque(lecciones, curso.data.bloques);
+const totalLecciones = lecciones.length;
+---
+
+<aside
+  id="temario"
+  class="temario"
+  data-curso={cursoSlug}
+  data-state="open"
+  aria-label="Temario del curso"
+>
+  <div class="temario-head">
+    <a href={`/cursos/${cursoSlug}`} class="temario-curso" title={curso.data.title}>
+      <span class="temario-curso-eyebrow mono">Curso</span>
+      <span class="temario-curso-title">{curso.data.title}</span>
+    </a>
+    <button
+      type="button"
+      class="temario-collapse"
+      aria-label="Colapsar temario"
+      aria-expanded="true"
+      aria-controls="temario"
+      title="Colapsar temario"
+    >
+      <span aria-hidden="true" class="collapse-glyph">«</span>
+      <span aria-hidden="true" class="collapse-glyph-open">»</span>
+    </button>
+  </div>
+
+  <p class="temario-count mono">{totalLecciones} {totalLecciones === 1 ? 'lección' : 'lecciones'}</p>
+
+  <nav class="temario-nav" aria-label="Lecciones del curso">
+    {bloques.map((bloque) => (
+      <section class="temario-bloque">
+        <h3 class="temario-bloque-nombre eyebrow">{bloque.nombre}</h3>
+        <ol class="temario-lecciones">
+          {bloque.lecciones.map((l) => {
+            const isActual = actualId && l.id === actualId;
+            const lhref = `/cursos/${cursoSlug}/${leccionSlug(l)}`;
+            const hasVideo = Boolean(l.data.videoUrl || l.data.videoFile);
+            return (
+              <li>
+                <a
+                  href={lhref}
+                  class:list={['temario-leccion', { 'temario-leccion-actual': isActual }]}
+                  aria-current={isActual ? 'page' : undefined}
+                >
+                  <span class="temario-leccion-titulo">{l.data.title}</span>
+                  {hasVideo && (
+                    <span class="temario-leccion-video" aria-label="lección con vídeo" title="lección con vídeo">▶</span>
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    ))}
+  </nav>
+</aside>
+
+{/* Botón flotante para móvil: abre el temario como drawer */}
+<button
+  type="button"
+  id="temario-toggle-movil"
+  class="temario-toggle-movil"
+  aria-label="Abrir temario"
+  aria-controls="temario"
+  aria-expanded="false"
+>
+  <svg class="toggle-hamburger" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+  <span>Temario</span>
+</button>
+<div id="temario-scrim" class="temario-scrim" aria-hidden="true"></div>
+
+<script is:inline>
+  (function () {
+    const aside   = document.getElementById('temario');
+    const toggle   = document.getElementById('temario-toggle-movil');
+    const scrim    = document.getElementById('temario-scrim');
+    const collapse = aside?.querySelector('.temario-collapse');
+    if (!aside || !toggle) return;
+
+    const curso = aside.dataset.curso;
+    const key = 'temario:' + curso;
+    const isDesktop = () =>
+      window.matchMedia('(min-width: 1024px)').matches;
+
+    /* Estado persistido de "colapsar vs abierto" (sólo escritorio). */
+    function applyState(state) {
+      aside.dataset.state = state;
+      collapse?.setAttribute('aria-expanded', state === 'open' ? 'true' : 'false');
+      try { localStorage.setItem(key, state); } catch (e) {}
+    }
+
+    /* Restaura el estado guardado SOLO en escritorio; en móvil arranca cerrado. */
+    let saved = null;
+    try { saved = localStorage.getItem(key); } catch (e) {}
+    if (isDesktop() && saved) applyState(saved);
+
+    /* Drawer móvil: abre, cierra por botón, scrim o Esc. */
+    function openMovil() {
+      aside.classList.add('temario-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      scrim?.classList.add('scrim-on');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMovil() {
+      aside.classList.remove('temario-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      scrim?.classList.remove('scrim-on');
+      document.body.style.overflow = '';
+    }
+
+    collapse?.addEventListener('click', function () {
+      if (isDesktop()) {
+        /* Escritorio: colapsa/expande la barra lateral. */
+        const next = aside.dataset.state === 'open' ? 'collapsed' : 'open';
+        applyState(next);
+      } else {
+        /* Móvil: el botón de colapsar cierra el drawer. */
+        closeMovil();
+      }
+    });
+
+    toggle.addEventListener('click', function () {
+      if (aside.classList.contains('temario-open')) closeMovil(); else openMovil();
+    });
+    scrim?.addEventListener('click', closeMovil);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && aside.classList.contains('temario-open')) closeMovil();
+    });
+
+    /* Si cambiaron de breakpoint, resetea el drawer móvil. */
+    window.matchMedia('(min-width: 1024px)').addEventListener('change', function (e) {
+      if (e.matches) closeMovil();
+    });
+  })();
+</script>
+
+<style>
+  /* ----- Layout: desktop sidebar / móvil drawer ----- */
+  .temario {
+    background: var(--color-background);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    /* Mobile: oculto por defecto, se abre como drawer */
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .temario {
+      display: block;
+      position: sticky;
+      top: 72px; /* alto del header */
+      align-self: start;
+      height: calc(100dvh - 72px);
+      width: clamp(260px, 22vw, 320px);
+      flex-shrink: 0;
+      overflow-y: auto;
+      transition: width var(--dur) var(--ease);
+    }
+    .temario[data-state='collapsed'] {
+      width: 48px;
+    }
+    .temario[data-state='collapsed'] .temario-nav,
+    .temario[data-state='collapsed'] .temario-count,
+    .temario[data-state='collapsed'] .temario-curso-title {
+      display: none;
+    }
+    .temario[data-state='collapsed'] .temario-head {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .temario[data-state='collapsed'] .collapse-glyph { display: none; }
+    .temario[data-state='collapsed'] .collapse-glyph-open { display: block; }
+  }
+
+  /* Mobile drawer */
+  @media (max-width: 1023px) {
+    .temario-open {
+      display: block !important;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: min(320px, 86vw);
+      z-index: 100;
+      overflow-y: auto;
+      border-right: 1px solid var(--color-border);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+    }
+  }
+  .temario-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 99;
+  }
+  .temario.scrim-on,
+  .scrim-on { display: block; }
+
+  /* ----- Cabecera del temario ----- */
+  .temario-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 0.75rem;
+  }
+  .temario-curso {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .temario-curso:hover .temario-curso-title { color: var(--color-accent); }
+  .temario-curso-eyebrow { color: var(--color-muted-foreground); }
+  .temario-curso-title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .temario-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+    background: transparent;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+    flex-shrink: 0;
+  }
+  .temario-collapse:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .collapse-glyph-open { display: none; }
+
+  .temario-count {
+    padding: 0 1.25rem 0.75rem;
+    color: var(--color-muted-foreground);
+    font-size: 0.75rem;
+  }
+
+  /* ----- Nav: bloques + lecciones ----- */
+  .temario-nav {
+    padding: 0.5rem 0 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .temario-bloque {
+    /* Anula el padding-block global que aplica a todo <section>
+       (clamp(4rem,10vw,8rem) en global.css) y haría que cada bloque
+       quedara centrado en un hueco vertical enorme. */
+    padding: 0;
+  }
+  .temario-bloque + .temario-bloque {
+    margin-top: 1rem;
+  }
+  .temario-bloque-nombre {
+    padding: 0.875rem 1.25rem 0.5rem;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+  .temario-bloque-nombre::before {
+    content: '';
+    width: 1rem;
+    height: 1px;
+    background: currentColor;
+    display: inline-block;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .temario-lecciones {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .temario-leccion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    color: var(--color-foreground);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    border-left: 2px solid transparent;
+    transition: color var(--dur) var(--ease),
+      background var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  .temario-leccion:hover {
+    color: var(--color-accent);
+    background: var(--color-muted);
+  }
+  .temario-leccion-actual {
+    color: var(--color-accent);
+    background: var(--color-muted);
+    border-left-color: var(--color-accent);
+    font-weight: 500;
+  }
+  .temario-leccion-titulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .temario-leccion-video {
+    flex-shrink: 0;
+    font-size: 0.625rem;
+    color: var(--color-muted-foreground);
+  }
+  .temario-leccion-actual .temario-leccion-video {
+    color: var(--color-accent);
+  }
+
+  /* ----- Botón móvil ----- */
+  .temario-toggle-movil {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    min-height: 40px;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.875rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-background);
+    color: var(--color-foreground);
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+  .temario-toggle-movil:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  @media (min-width: 1024px) {
+    .temario-toggle-movil { display: none; }
+    .temario-scrim { display: none !important; }
+  }
+</style>
