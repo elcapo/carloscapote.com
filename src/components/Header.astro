@@ -2,6 +2,14 @@
 const path = Astro.url.pathname;
 const isActive = (p: string) =>
   p === '/' ? path === '/' : path.startsWith(p);
+
+const navItems = [
+  { href: '/',         label: 'Inicio',    active: isActive('/') && path === '/' },
+  { href: '/cursos',   label: 'Cursos',    active: isActive('/cursos') },
+  { href: '/articulos',label: 'Artículo',  active: isActive('/articulos') },
+  { href: '/apuntes',  label: 'Apuntes',   active: isActive('/apuntes') },
+  { href: '/quien-soy',label: 'Quién soy', active: isActive('/quien-soy') },
+];
 ---
 
 <header class="site-header">
@@ -10,75 +18,129 @@ const isActive = (p: string) =>
       <img class="logo-img logo-light" src="/logo-claro.png" alt="Carlos Capote" height="36" />
       <img class="logo-img logo-dark"  src="/logo-oscuro.png" alt="Carlos Capote" height="36" />
     </a>
-    <nav aria-label="Principal">
+
+    <nav class="nav-inline" aria-label="Principal">
       <ul>
-        <li>
-          <a href="/" class:list={[{ active: isActive('/') && path === '/' }]}>
-            Inicio
-          </a>
-        </li>
-        <li>
-          <a href="/articulos" class:list={[{ active: isActive('/articulos') }]}>
-            Artículo
-          </a>
-        </li>
-        <li>
-          <a href="/apuntes" class:list={[{ active: isActive('/apuntes') }]}>
-            Apuntes
-          </a>
-        </li>
-        <li>
-          <a href="/quien-soy" class:list={[{ active: isActive('/quien-soy') }]}>
-            Quién soy
-          </a>
-        </li>
-        <li>
-          <button
-            id="theme-toggle"
-            type="button"
-            class="theme-toggle"
-            aria-label="Cambiar modo claro u oscuro"
-            title="Cambiar modo claro u oscuro"
-          >
-            <svg class="icon icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="4"></circle>
-              <path d="M12 2v2"></path>
-              <path d="M12 20v2"></path>
-              <path d="m4.93 4.93 1.41 1.41"></path>
-              <path d="m17.66 17.66 1.41 1.41"></path>
-              <path d="M2 12h2"></path>
-              <path d="M20 12h2"></path>
-              <path d="m6.34 17.66-1.41 1.41"></path>
-              <path d="m19.07 4.93-1.41 1.41"></path>
-            </svg>
-            <svg class="icon icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-            </svg>
-          </button>
-        </li>
+        {navItems.map((item) => (
+          <li>
+            <a href={item.href} class:list={[{ active: item.active }]}>{item.label}</a>
+          </li>
+        ))}
       </ul>
     </nav>
+
+    <div class="header-actions">
+      <button
+        id="theme-toggle"
+        type="button"
+        class="theme-toggle"
+        aria-label="Cambiar modo claro u oscuro"
+        title="Cambiar modo claro u oscuro"
+      >
+        <svg class="icon icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2"></path>
+          <path d="M12 20v2"></path>
+          <path d="m4.93 4.93 1.41 1.41"></path>
+          <path d="m17.66 17.66 1.41 1.41"></path>
+          <path d="M2 12h2"></path>
+          <path d="M20 12h2"></path>
+          <path d="m6.34 17.66-1.41 1.41"></path>
+          <path d="m19.07 4.93-1.41 1.41"></path>
+        </svg>
+        <svg class="icon icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+        </svg>
+      </button>
+
+      <button
+        id="menu-toggle"
+        type="button"
+        class="menu-toggle"
+        aria-label="Abrir menú"
+        aria-expanded="false"
+        aria-controls="menu-panel"
+      >
+        <svg class="menu-icon menu-icon-open" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <svg class="menu-icon menu-icon-close" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
   <hr class="rule" />
 </header>
 
+<nav id="menu-panel" class="nav-drawer" aria-label="Principal (móvil)">
+  <ul>
+    {navItems.map((item) => (
+      <li>
+        <a href={item.href} class:list={[{ active: item.active }]}>{item.label}</a>
+      </li>
+    ))}
+  </ul>
+</nav>
+<div id="menu-scrim" class="menu-scrim" aria-hidden="true"></div>
+
 <script is:inline>
   (function () {
+    /* ----- Theme toggle ----- */
     var btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-    function current() {
-      var attr = document.documentElement.getAttribute('data-theme');
-      if (attr === 'dark' || attr === 'light') return attr;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
+    if (btn) {
+      function current() {
+        var attr = document.documentElement.getAttribute('data-theme');
+        if (attr === 'dark' || attr === 'light') return attr;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      }
+      btn.addEventListener('click', function () {
+        var next = current() === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try {
+          localStorage.setItem('theme', next);
+        } catch (e) {}
+      });
     }
-    btn.addEventListener('click', function () {
-      var next = current() === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try {
-        localStorage.setItem('theme', next);
-      } catch (e) {}
+
+    /* ----- Menú móvil (drawer) ----- */
+    var toggle = document.getElementById('menu-toggle');
+    var panel  = document.getElementById('menu-panel');
+    var scrim  = document.getElementById('menu-scrim');
+    if (!toggle || !panel) return;
+
+    function openMenu() {
+      panel.classList.add('menu-open');
+      scrim.classList.add('scrim-on');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMenu() {
+      panel.classList.remove('menu-open');
+      scrim.classList.remove('scrim-on');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+
+    toggle.addEventListener('click', function () {
+      if (panel.classList.contains('menu-open')) closeMenu(); else openMenu();
+    });
+    scrim.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && panel.classList.contains('menu-open')) closeMenu();
+    });
+    /* Cierra el drawer al navegar por un enlace. */
+    panel.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', closeMenu);
+    });
+    /* Reset al volver a escritorio. */
+    window.matchMedia('(min-width: 769px)').addEventListener('change', function (e) {
+      if (e.matches) closeMenu();
     });
   })();
 </script>
@@ -95,7 +157,6 @@ const isActive = (p: string) =>
   .header-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 1.5rem;
     min-height: 72px;
     padding-block: 1rem;
@@ -103,12 +164,15 @@ const isActive = (p: string) =>
   .logo {
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
+    min-width: 0;
   }
   .logo-img {
     display: block;
     max-height: 64px;
     height: auto;
     width: auto;
+    flex-shrink: 0;
   }
   /* Light mode (default): show light logo */
   .logo-light { display: block; }
@@ -121,27 +185,28 @@ const isActive = (p: string) =>
     :global(:root:not([data-theme='light'])) .logo-light { display: none;  }
     :global(:root:not([data-theme='light'])) .logo-dark  { display: block; }
   }
-  nav ul {
+  /* ----- Nav inline (desktop) ----- */
+  .nav-inline { margin-left: auto; }
+  .nav-inline ul {
     list-style: none;
     display: flex;
     gap: 0.25rem;
   }
-  nav a {
-    display: inline-block;
+  .nav-inline a {
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-heading);
     font-weight: 500;
     font-size: 0.9375rem;
     color: var(--color-foreground);
     padding: 0.5rem 0.875rem;
     min-height: 44px;
-    display: inline-flex;
-    align-items: center;
     transition: color var(--dur) var(--ease);
     position: relative;
   }
-  nav a:hover { color: var(--color-accent); }
-  nav a.active { color: var(--color-accent); }
-  nav a.active::after {
+  .nav-inline a:hover { color: var(--color-accent); }
+  .nav-inline a.active { color: var(--color-accent); }
+  .nav-inline a.active::after {
     content: '';
     position: absolute;
     left: 0.875rem;
@@ -151,13 +216,20 @@ const isActive = (p: string) =>
     background: currentColor;
   }
 
+  /* ----- Acciones del header (theme + hamburguesa) ----- */
+  .header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
   .theme-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 44px;
     height: 44px;
-    margin-left: 0.25rem;
     color: var(--color-foreground);
     background: transparent;
     border: 1px solid var(--color-border);
@@ -183,7 +255,103 @@ const isActive = (p: string) =>
     :global(:root:not([data-theme='light'])) .theme-toggle .icon-sun { display: block; }
   }
 
-  @media (max-width: 540px) {
-    nav a { padding: 0.5rem 0.625rem; font-size: 0.875rem; }
+  /* ----- Menú móvil (hamburguesa + drawer fuera del header) ----- */
+  .menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--color-foreground);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+    transition:
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      background var(--dur) var(--ease);
+  }
+  .menu-toggle:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .menu-toggle .menu-icon { display: none; }
+  .menu-toggle .menu-icon-open { display: block; }
+  .menu-toggle .menu-icon-close { display: none; }
+  body:has(#menu-panel.menu-open) .menu-toggle .menu-icon-open { display: none; }
+  body:has(#menu-panel.menu-open) .menu-toggle .menu-icon-close { display: block; }
+
+  /* El drawer y la scrim viven FUERA del header para escapar
+     del stacking context creado por backdrop-filter. */
+  .nav-drawer,
+  .menu-scrim { display: none; }
+
+  .menu-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 109;
+  }
+  .menu-scrim.scrim-on { display: block; }
+
+  @media (max-width: 768px) {
+    .nav-inline { display: none; }
+    .header-actions { margin-left: auto; }
+    .menu-toggle { display: inline-flex; }
+
+    .nav-drawer {
+      display: block;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(320px, 86vw);
+      transform: translateX(100%);
+      z-index: 110;
+      background: var(--color-background);
+      border-left: 1px solid var(--color-border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+      overflow-y: auto;
+      padding: 5rem 1.25rem 2rem;
+      transition: transform var(--dur) var(--ease);
+    }
+    .nav-drawer.menu-open {
+      transform: translateX(0);
+    }
+    .nav-drawer ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .nav-drawer a {
+      display: flex;
+      align-items: center;
+      font-family: var(--font-heading);
+      font-weight: 500;
+      font-size: 1rem;
+      color: var(--color-foreground);
+      padding: 0.75rem 0.875rem;
+      min-height: 44px;
+      transition: color var(--dur) var(--ease);
+      position: relative;
+    }
+    .nav-drawer a:hover { color: var(--color-accent); }
+    .nav-drawer a.active { color: var(--color-accent); }
+    .nav-drawer a.active::after {
+      content: '';
+      position: absolute;
+      left: 0.875rem;
+      bottom: 0.5rem;
+      right: 0.875rem;
+      height: 2px;
+      background: currentColor;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .menu-toggle { display: none; }
+    .nav-drawer,
+    .menu-scrim { display: none !important; }
   }
 </style>

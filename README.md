@@ -25,19 +25,34 @@ src/
 │   ├── Chart.astro          # Gráfica: SSR build-time + hidratación cliente
 │   ├── chart-ssr.ts         # Render SVG server-side de Chart.js
 │   ├── Note.astro           # Notas al margen / aclaraciones
-│   └── chiquito/            # Widgets interactivos del artículo "chiquito"
+│   ├── chiquito/            # Widgets interactivos del artículo "chiquito"
+│   └── cursos/              # Sección de cursos
+│       ├── CursosList.astro          # Listado de cursos (estilo ArticlesList)
+│       ├── CursoTemario.astro        # Menú lateral colapsable por curso
+│       ├── LeccionVideo.astro        # Reproductor 16:9 (iframe o <video>)
+│       ├── LeccionNavegacion.astro   # Anterior / siguiente / volver al curso
+│       └── leccion-helpers.ts        # Orden, agrupación por bloque, slugs
 ├── content/
-│   └── articulos/           # Artículos en Markdown / MDX
-├── content.config.ts        # Esquema de la colección
+│   ├── articulos/           # Artículos en Markdown / MDX
+│   └── cursos/              # Cursos: index.md por curso + capitulos/*.md
+├── content.config.ts        # Esquemas de las colecciones (articulos, apuntes, cursos, lecciones)
 ├── layouts/
-│   └── Layout.astro
+│   ├── Layout.astro
+│   ├── PageLayout.astro
+│   └── CursoLayout.astro    # Layout de lección: temario lateral + vídeo/prosa
 ├── pages/
 │   ├── index.astro          # Landing
 │   ├── quien-soy.mdx
 │   ├── rss.xml.js           # Feed RSS
-│   └── articulos/
-│       ├── index.astro      # Listado
-│       └── [...slug].astro  # Detalle
+│   ├── sitemap.xml.js
+│   ├── articulos/
+│   ├── apuntes/
+│   └── cursos/
+│       ├── index.astro              # Listado de cursos
+│       ├── [curso]/
+│       │   ├── index.astro          # Presentación del curso + temario
+│       │   └── [leccion].astro       # Página de cada lección
+│       └── tags/[tag].astro
 └── styles/global.css
 ```
 
@@ -128,6 +143,63 @@ projectUrl: "https://..."
 draft: true
 ---
 ```
+
+## Cursos y lecciones
+
+La sección de cursos vive en `src/content/cursos/`. Cada curso es una carpeta con un `index.md` (presentación del curso) y una subcarpeta `capitulos/` con las lecciones.
+
+### Estructura de un curso
+
+```
+src/content/cursos/<curso-slug>/
+├── index.md                # frontmatter con metadatos + body de presentación
+└── capitulos/
+    ├── 00-preparar-el-entorno.md   # prefijo numérico para ordenar
+    ├── 01-como-leer-codigo.md     # slug final: /cursos/<curso>/como-leer-codigo/
+    └── ...
+```
+
+### Frontmatter del curso (`index.md`)
+
+```yaml
+---
+title: "Leyendo Python"
+description: "..."
+pubDate: 2026-06-28
+updatedDate: 2026-06-29      # opcional, último cambio
+tags: ["python", "código"]
+bloques: ["Preparación", "Cómo aproximarse a un repositorio"]  # orden explícito de bloques
+repo: "https://github.com/.../leyendo-python"   # opcional
+license: "CC0"                                   # opcional
+draft: true
+---
+```
+
+### Frontmatter de cada lección (`capitulos/NN-slug.md`)
+
+```yaml
+---
+title: "Cómo leer código"
+description: "..."
+curso: "leyendo-python"               # slug del curso al que pertenece
+bloque: "Cómo aproximarse a un repositorio"   # grupo en el menú lateral
+orden: 1                             # opcional; si se omite, se infiere del prefijo del nombre
+videoUrl: "https://youtu.be/..."     # opcional (embed YouTube/Vimeo)
+videoFile: "/cursos/.../intro.mp4"   # opcional (self-hosted en /public)
+duration: "12:34"                    # opcional, sólo decorativo
+draft: true
+---
+```
+
+- El `title` de la lección se usa como encabezado y como etiqueta en el menú lateral. **No** se muestra ninguna numeración automática.
+- Las lecciones se **agrupan por `bloque`** en el menú (estilo screencasting.com). Si el curso declara `bloques`, ese array fija el orden; si no, se respeta el orden de aparición.
+- Los vídeos son optativos: una lección con `videoUrl`/`videoFile` monta el reproductor como elemento principal del layout (estilo Coursera/Udemy); una lección sin vídeo usa exactamente el mismo layout pero sin el hueco del reproductor, para dar continuidad visual a cursos mixtos.
+- El menú lateral `CursoTemario` es **colapsable en escritorio** (ancho vs franja de 48px) y **drawer superpuesto en móvil**. El estado colapsado se persiste por curso en `localStorage['temario:<curso-slug>']`.
+- En `pnpm dev` los cursos y lecciones con `draft: true` **se muestran** para poder previsualizarlos; en `astro build` no se generan rutas para ellos.
+
+### Sincronización de contenido vendorizado
+
+El contenido de un curso puede vivir en un repositorio externo. En ese caso, los `.md` se **copian (vendor)** a `src/content/cursos/<curso>/`  en el repo del blog. El frontmatter propio del blog se añade al copiar y **no** se machaca con posteriores `syncs` (cuerpo Markdown = fuente externa, frontmatter = blog). No existe todavía un script automático de sincronización; por ahora la copia es manual.
 
 ## Licencia
 

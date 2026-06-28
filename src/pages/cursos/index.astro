@@ -1,0 +1,65 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import CursosList from '../../components/cursos/CursosList.astro';
+import { visible } from '../../components/cursos/draft-filter';
+import { getCollection } from 'astro:content';
+
+const cursos = (await getCollection('cursos', visible))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+/* Cuenta de lecciones publicadas por curso, para mostrar el badge
+   "N lecciones" en cada fila del listado. */
+const todasLasLecciones = await getCollection('lecciones', visible);
+const leccionCount: Record<string, number> = {};
+for (const l of todasLasLecciones) {
+  leccionCount[l.data.curso] = (leccionCount[l.data.curso] ?? 0) + 1;
+}
+---
+
+<Layout
+  title="Cursos — Carlos Capote"
+  description="Cursos en profundidad sobre programación y software libre, basados en leer y analizar código de proyectos reales."
+>
+  <section class="page-head">
+    <div class="container">
+      <p class="eyebrow">Archivo</p>
+      <h1 class="display">Cursos</h1>
+      <p class="lede">
+        Cursos en profundidad para leer, ejecutar y entender código de proyectos reales. Cada curso se organiza por bloques temáticos y lecciones.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section class="list-section">
+    <div class="container">
+      <CursosList
+        cursos={cursos}
+        leccionCount={leccionCount}
+        headingLevel="h2"
+        showDrafts={false}
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-head {
+    padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 7vw, 5rem);
+  }
+  .page-head h1 {
+    margin-top: 1.5rem;
+  }
+  .lede {
+    margin-top: 2rem;
+    font-size: clamp(1.125rem, 1.75vw, 1.375rem);
+    line-height: 1.55;
+    max-width: 56ch;
+    color: var(--color-secondary);
+  }
+
+  .list-section {
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 11vw, 8rem);
+  }
+</style>

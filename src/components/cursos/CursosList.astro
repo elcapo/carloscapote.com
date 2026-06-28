@@ -1,0 +1,150 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  cursos: CollectionEntry<'cursos'>[];
+  basePath?: string;
+  leccionCount?: Record<string, number>;
+  headingLevel?: 'h2' | 'h3';
+  showDrafts?: boolean;
+}
+
+const {
+  cursos,
+  basePath = '/cursos',
+  leccionCount = {},
+  headingLevel = 'h2',
+  showDrafts = false,
+} = Astro.props;
+
+const TitleTag = headingLevel;
+
+/* En desarrollo mostramos borradores para previsualizar; en build de
+   producción se respetan los flags `draft` y `showDrafts`. */
+const filtered = cursos.filter(
+  (curso) => !curso.data.draft || showDrafts || import.meta.env.DEV,
+);
+---
+
+<ul class="cursos-list">
+  {filtered.map((c) => {
+    const cursoHref = `${basePath}/${c.id}`;
+    const nLecciones = leccionCount[c.id] ?? 0;
+    return (
+      <li class="curso-row" data-href={cursoHref}>
+        <div class="curso-content">
+          <TitleTag class="curso-title">
+            <a href={cursoHref} class="curso-title-link">{c.data.title}</a>
+          </TitleTag>
+          <p class="curso-desc">{c.data.description}</p>
+          <div class="curso-meta">
+            <span class="mono">{nLecciones} {nLecciones === 1 ? 'lección' : 'lecciones'}</span>
+            {showDrafts && c.data.draft && <span class="badge">Borrador</span>}
+            {c.data.tags.map(t => <a href={`/cursos/tags/${encodeURIComponent(t)}`} class="tag">{t}</a>)}
+          </div>
+        </div>
+        <span class="curso-arrow" aria-hidden="true">→</span>
+      </li>
+    );
+  })}
+</ul>
+
+<script>
+  const list = document.querySelector('.cursos-list');
+  list?.addEventListener('click', (e) => {
+    const row = e.target.closest('.curso-row');
+    if (!row) return;
+    if (e.target.closest('a')) return;
+    window.location.href = row.dataset.href;
+  });
+</script>
+
+<style>
+  .cursos-list {
+    list-style: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .curso-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: 2.25rem;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), padding var(--dur) var(--ease);
+  }
+  .curso-row:hover {
+    background: var(--color-muted);
+    padding-inline: 1.25rem;
+  }
+
+  .curso-title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--dur) var(--ease);
+  }
+  .curso-title-link:hover { color: var(--color-accent); }
+  .curso-row:hover .curso-title-link { color: var(--color-accent); }
+
+  .curso-title {
+    font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+    line-height: 1.15;
+  }
+
+  .curso-desc {
+    margin-top: 0.75rem;
+    color: var(--color-secondary);
+    max-width: 68ch;
+    font-size: 1.0625rem;
+  }
+
+  .curso-meta {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+    color: var(--color-muted-foreground);
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-transform: lowercase;
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+  .tag:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.625rem;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    text-transform: uppercase;
+  }
+
+  .curso-arrow {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-muted-foreground);
+    align-self: center;
+    transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .curso-row:hover .curso-arrow {
+    color: var(--color-accent);
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 640px) {
+    .curso-arrow { display: none; }
+  }
+</style>

@@ -1,0 +1,252 @@
+---
+import Layout from './Layout.astro';
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import CursoTemario from '../components/cursos/CursoTemario.astro';
+import LeccionVideo from '../components/cursos/LeccionVideo.astro';
+import LeccionNavegacion from '../components/cursos/LeccionNavegacion.astro';
+
+interface Props {
+  curso: CollectionEntry<'cursos'>;
+  leccion: CollectionEntry<'lecciones'>;
+  /* Todas las lecciones del curso (ordenadas por bloque) para el menú y
+     para anterior/siguiente. */
+  temario: CollectionEntry<'lecciones'>[];
+  prev?: CollectionEntry<'lecciones'>;
+  next?: CollectionEntry<'lecciones'>;
+}
+
+const { curso, leccion, temario, prev, next } = Astro.props;
+const { Content } = await render(leccion);
+
+const hasVideo = Boolean(leccion.data.videoUrl || leccion.data.videoFile);
+---
+
+<Layout title={`${leccion.data.title} — ${curso.data.title}`} description={leccion.data.description}>
+  <article class="leccion" data-temario="open">
+    <CursoTemario curso={curso} lecciones={temario} actualId={leccion.id} />
+
+    <div class="leccion-main" data-has-video={hasVideo}>
+      <div class="leccion-topbar">
+        <a href={`/cursos/${curso.id}`} class="crumb">
+          <span aria-hidden="true">←</span> {curso.data.title}
+        </a>
+        <span class="leccion-bloque mono">{leccion.data.bloque}</span>
+      </div>
+
+      {hasVideo && (
+        <LeccionVideo
+          videoUrl={leccion.data.videoUrl}
+          videoFile={leccion.data.videoFile}
+          duration={leccion.data.duration}
+        />
+      )}
+
+      <header class="leccion-head narrow">
+        <h1 class="leccion-title">{leccion.data.title}</h1>
+        <p class="leccion-lede">{leccion.data.description}</p>
+        {leccion.data.duration && !hasVideo && (
+          <p class="leccion-meta mono">{leccion.data.duration}</p>
+        )}
+      </header>
+
+      <div class="prose narrow leccion-prose">
+        <Content />
+      </div>
+
+      <div class="narrow">
+        <LeccionNavegacion curso={curso} prev={prev} next={next} />
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .leccion {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: calc(100dvh - 72px);
+  }
+  @media (min-width: 1024px) {
+    .leccion {
+      grid-template-columns: clamp(260px, 22vw, 320px) 1fr;
+      transition: grid-template-columns var(--dur) var(--ease);
+    }
+    .leccion[data-temario='collapsed'] {
+      grid-template-columns: 48px 1fr;
+    }
+  }
+
+  .leccion-main {
+    min-width: 0;
+    width: 100%;
+    padding-block: clamp(1.5rem, 3vw, 2.5rem);
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .leccion-main { padding-inline: 2.5rem; }
+  }
+  .leccion-main > .narrow {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  /* ----- Topbar ----- */
+  .leccion-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .leccion-topbar .crumb {
+    color: var(--color-muted-foreground);
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: color var(--dur) var(--ease);
+  }
+  .leccion-topbar .crumb:hover { color: var(--color-accent); }
+  .leccion-bloque {
+    font-size: 0.6875rem;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ----- Cabecera de la lección ----- */
+  .leccion-head {
+    margin-top: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 1.5rem;
+  }
+  /* Si la lección lleva vídeo, el hueco lo da el margin-bottom del
+     .video-frame; el .leccion-head arranca pegado al vídeo. */
+  .leccion-main[data-has-video='true'] > .leccion-head {
+    margin-top: 0;
+  }
+  .leccion-title {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    text-wrap: balance;
+  }
+  .leccion-lede {
+    margin-top: 1rem;
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    line-height: 1.5;
+    color: var(--color-secondary);
+    max-width: 60ch;
+  }
+  .leccion-meta {
+    margin-top: 0.75rem;
+    color: var(--color-muted-foreground);
+  }
+
+  /* ----- Prose de la lección: misma base que el artículo/apunte,
+         pero SIN drop-cap (la lección con vídeo se lee como notas
+         de la grabación; la que no, como ensayo de referencia). ----- */
+  .leccion-prose {
+    padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 5vw, 4rem);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--color-foreground);
+  }
+  .leccion-prose :global(h2) {
+    font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+  }
+  .leccion-prose :global(h3) {
+    font-size: clamp(1.125rem, 1.5vw, 1.25rem);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  .leccion-prose :global(h4) {
+    font-size: clamp(1rem, 1.2vw, 1.0625rem);
+    font-weight: 600;
+    margin-top: 1.75rem;
+    margin-bottom: 0.625rem;
+  }
+  .leccion-prose :global(p) {
+    margin-bottom: 1.25rem;
+    max-width: 68ch;
+  }
+  /* Sin drop-cap en lecciones: igualdad visual con/sin vídeo. */
+  .leccion-prose :global(> p:first-of-type::first-letter) {
+    all: unset;
+  }
+  .leccion-prose :global(ul),
+  .leccion-prose :global(ol) {
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+    max-width: 68ch;
+  }
+  .leccion-prose :global(li) { margin-bottom: 0.4rem; }
+  .leccion-prose :global(strong) { font-weight: 700; color: var(--color-foreground); }
+  .leccion-prose :global(blockquote) {
+    margin: 1.75rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-muted);
+    color: var(--color-secondary);
+  }
+  .leccion-prose :global(blockquote p) { margin: 0; }
+  .leccion-prose :global(blockquote ul),
+  .leccion-prose :global(blockquote ol) { margin-bottom: 0; }
+  .leccion-prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.125rem 0.375rem;
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .leccion-prose :global(pre) {
+    margin: 1.75rem 0;
+    padding: 1.125rem 1.25rem;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+  }
+  .leccion-prose :global(pre code) {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .leccion-prose :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .leccion-prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.75rem 0;
+    font-size: 0.9375rem;
+  }
+  .leccion-prose :global(th) {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted-foreground);
+    text-align: left;
+    padding: 0.625rem 1rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .leccion-prose :global(td) {
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-foreground);
+  }
+  .leccion-prose :global(tr:last-child td) {
+    border-bottom: none;
+  }
+</style>

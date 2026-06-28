@@ -1,0 +1,77 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import CursosList from '../../../components/cursos/CursosList.astro';
+import { visible } from '../../../components/cursos/draft-filter';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const cursos = await getCollection('cursos', visible);
+  const lecciones = await getCollection('lecciones', visible);
+
+  /* Cuenta de lecciones por curso (para el badge "N lecciones"). */
+  const leccionCount: Record<string, number> = {};
+  for (const l of lecciones) {
+    leccionCount[l.data.curso] = (leccionCount[l.data.curso] ?? 0) + 1;
+  }
+
+  const tags = new Set<string>();
+  for (const c of cursos) {
+    for (const t of c.data.tags) {
+      tags.add(t);
+    }
+  }
+  return Array.from(tags).map((tag) => ({
+    params: { tag },
+    props: { leccionCount },
+  }));
+}
+
+const { tag } = Astro.params;
+const { leccionCount } = Astro.props;
+
+const cursos = (await getCollection('cursos', visible))
+  .filter((c) => c.data.tags.includes(tag!))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<Layout title={`#${tag} — Cursos — Carlos Capote`} description={`Cursos etiquetados con «${tag}».`}>
+  <section class="page-head">
+    <div class="container">
+      <p class="eyebrow"><a href="/cursos">← Cursos</a></p>
+      <h1 class="display"><span class="tag-head">{tag}</span></h1>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section class="list-section">
+    <div class="container">
+      <CursosList
+        cursos={cursos}
+        leccionCount={leccionCount}
+        headingLevel="h2"
+        showDrafts={false}
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-head {
+    padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 7vw, 5rem);
+  }
+  .page-head h1 {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+  .tag-head {
+    font-weight: inherit;
+    color: var(--color-accent);
+  }
+
+  .list-section {
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 11vw, 8rem);
+  }
+</style>
