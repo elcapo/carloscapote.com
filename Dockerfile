@@ -3,7 +3,7 @@
 # Builder: imagen oficial de Playwright con Chromium ya instalado. Lo necesita
 # `rehype-mermaid` (estrategia `inline-svg`) durante `astro build` para pintar
 # los diagramas a SVG. También trae Node, así que sirve como entorno de build.
-FROM mcr.microsoft.com/playwright:v1.59.1-noble AS builder
+FROM mcr.microsoft.com/playwright:v1.61.1-noble AS builder
 
 WORKDIR /app
 
