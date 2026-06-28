@@ -2,7 +2,7 @@
 title: "Leyendo Python"
 description: "Una forma diferente de estudiar programación: leer y analizar código de proyectos existentes."
 pubDate: 2026-06-28
-tags: ["python", "código", "aprendizaje"]
+tags: ["python", "programación"]
 bloques: ["Preparación", "Cómo aproximarse a un repositorio"]
 repo: "https://github.com/elcapo/leyendo-python"
 license: "CC0"
@@ -15,21 +15,21 @@ Ahora que los ordenadores saben programar, leer y entender código se hace más 
 
 Los repositorios que este curso usa como referencias cumplen, como mínimo:
 
-1. Reputación pública por **buenas prácticas** (tipado, testing, documentación, diseño limpio).
+1. Reputación pública por **buenas prácticas**.
 2. **Uso amplio** en la industria o en la comunidad open source.
 3. **Código libre**, con licencia abierta y desarrollo en público.
 4. **Reducido tamaño** para hacer su estudio asequible.
 
 ### Bibliografía
 
-| Título | Escrito por | Descripción |
-| --- | --- | --- |
-| **Python for everybody** | Charles R. Severance | Introducción muy accesible para quien nunca ha programado.<br/>Destaca por su tono cercano y ejemplos sencillos. |
-| **Think Python** | Allen Downey | Enseña a razonar como un programador.<br/>Su punto fuerte es el enfoque en pensamiento computacional y resolución de problemas. |
-| **Beyond the basic stuff** | Al Sweigart | Puente entre principiante e intermedio.<br/>Sobresale en buenas prácticas de código limpio y depuración. |
-| **The Hitchiker's Guide to Python** | Kenneth Reitz<br/>Tanya Schlusser | Guía de buenas prácticas y tooling.<br/>Destaca como referencia rápida del ecosistema Python moderno. |
-| **Architecture Patterns with Python** | Harry J.W. Percival<br/>Bob Gregory | Introduce Domain-Driven Design y patrones de arquitectura.<br/>Su fuerte son los ejemplos de testing y arquitectura hexagonal. |
-| **A byte of Python** | Swaroop C H | Manual conciso y gratuito.<br/>Brilla como referencia compacta para principiantes y como repaso para programadores. |
+| Libro | Resumen |
+| --- | --- |
+| **Python for everybody**<br/>por Charles R. Severance | Introducción muy accesible para quien nunca ha programado.<br/>Destaca por su tono cercano y ejemplos sencillos. |
+| **Think Python**<br/>por Allen Downey | Enseña a razonar como un programador.<br/>Su punto fuerte es el enfoque en pensamiento computacional y resolución de problemas. |
+| **Beyond the basic stuff**<br/>por Al Sweigart | Puente entre principiante e intermedio.<br/>Sobresale en buenas prácticas de código limpio y depuración. |
+| **The Hitchiker's Guide to Python**<br/>por Kenneth Reitz y Tanya Schlusser | Guía de buenas prácticas y tooling.<br/>Destaca como referencia rápida del ecosistema Python moderno. |
+| **Architecture Patterns with Python**<br/>por Harry J.W. Percival y Bob Gregory | Introduce Domain-Driven Design y patrones de arquitectura.<br/>Su fuerte son los ejemplos de testing y arquitectura hexagonal. |
+| **A byte of Python**<br/>por Swaroop C. H. | Manual conciso y gratuito.<br/>Brilla como referencia compacta para principiantes y como repaso para programadores. |
 
 ### Referencias
 

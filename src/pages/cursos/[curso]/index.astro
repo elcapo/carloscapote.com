@@ -53,14 +53,6 @@ const fmt = (d: Date) =>
           {curso.data.tags.map(t => <a href={`/cursos/tags/${encodeURIComponent(t)}`} class="tag">{t}</a>)}
         </div>
 
-        {curso.data.repo && (
-          <p class="curso-repo">
-            <a href={curso.data.repo} rel="noopener">
-              Repositorio del curso ↗
-            </a>
-          </p>
-        )}
-
         {(primeraLeccion) && (
           <div class="curso-actions">
             {(
