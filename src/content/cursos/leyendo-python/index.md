@@ -4,7 +4,7 @@ description: "Una forma diferente de estudiar programación: leer y analizar có
 pubDate: 2026-06-28
 tags: ["python", "código", "aprendizaje"]
 bloques: ["Preparación", "Cómo aproximarse a un repositorio"]
-repo: "https://github.com/carlos-capote/leyendo-python"
+repo: "https://github.com/elcapo/leyendo-python"
 license: "CC0"
 draft: true
 ---

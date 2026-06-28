@@ -29,10 +29,7 @@ const lecciones = todas
 const bloques = agruparPorBloque(lecciones, curso.data.bloques);
 
 /* Primera lección útil: la del primer bloque que tenga lecciones. */
-const primerLeccion = bloques.find((b) => b.lecciones.length > 0)?.lecciones[0];
-const leccionPreparacion = lecciones.find((l) =>
-  l.id.includes('00-preparar-el-entorno'),
-);
+const primeraLeccion = bloques.find((b) => b.lecciones.length > 0)?.lecciones[0];
 
 const fmt = (d: Date) =>
   d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -64,19 +61,11 @@ const fmt = (d: Date) =>
           </p>
         )}
 
-        {(primerLeccion || leccionPreparacion) && (
+        {(primeraLeccion) && (
           <div class="curso-actions">
-            {leccionPreparacion && (
+            {(
               <a
-                href={`/cursos/${curso.id}/${leccionSlug(leccionPreparacion)}`}
-                class="btn"
-              >
-                Preparar el entorno →
-              </a>
-            )}
-            {primerLeccion && !leccionPreparacion && (
-              <a
-                href={`/cursos/${curso.id}/${leccionSlug(primerLeccion)}`}
+                href={`/cursos/${curso.id}/${leccionSlug(primeraLeccion)}`}
                 class="btn"
               >
                 Empezar el curso →
@@ -87,14 +76,18 @@ const fmt = (d: Date) =>
       </div>
     </header>
 
-    <hr class="rule" />
+    {/* --- Presentación (body del index.md del curso) --- */}
+    <div class="container narrow">
+      <div class="prose curso-prose">
+        <Content />
+      </div>
+    </div>
 
     {/* --- Temario --- */}
     <section class="curso-temario">
       <div class="container">
         <header class="temario-header">
-          <p class="eyebrow">Temario</p>
-          <h2 class="display display--md">Lecciones</h2>
+          <h2>Temario</h2>
         </header>
 
         {bloques.length === 0 ? (
@@ -132,26 +125,12 @@ const fmt = (d: Date) =>
       </div>
     </section>
 
-    <hr class="rule" />
-
-    {/* --- Presentación (body del index.md del curso) --- */}
-    <div class="container narrow">
-      <div class="prose curso-prose">
-        <Content />
-      </div>
-
-      {curso.data.license && (
-        <p class="curso-license mono">
-          Licencia: {curso.data.license}
-        </p>
-      )}
-    </div>
   </article>
 </Layout>
 
 <style>
   .curso-head {
-    padding-block: clamp(4rem, 10vw, 8rem) clamp(3rem, 6vw, 5rem);
+    padding-block: clamp(4rem, 10vw, 8rem) clamp(1.5rem, 3vw, 2.5rem);
   }
   .curso-title {
     margin-top: 1.5rem;
@@ -196,10 +175,16 @@ const fmt = (d: Date) =>
 
   /* Temario */
   .curso-temario {
-    padding-block: clamp(3rem, 6vw, 5rem);
+    padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(3rem, 6vw, 5rem);
   }
   .temario-header { margin-bottom: 2.5rem; }
-  .temario-header h2 { margin-top: 1rem; }
+  .temario-header h2 {
+    margin-top: 1rem;
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
   .temario-vacio {
     color: var(--color-muted-foreground);
     font-style: italic;
@@ -263,7 +248,7 @@ const fmt = (d: Date) =>
 
   /* Presentación */
   .curso-prose {
-    padding-block: clamp(3rem, 6vw, 5rem);
+    padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(1.5rem, 3vw, 2.5rem);
     font-size: 1.125rem;
     line-height: 1.75;
     color: var(--color-foreground);
