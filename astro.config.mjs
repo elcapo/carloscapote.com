@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import mdx from '@astrojs/mdx';
 import rehypeMermaid from 'rehype-mermaid';
 import remarkMath from 'remark-math';
@@ -8,6 +9,21 @@ export default defineConfig({
   site: 'https://carloscapote.com',
   integrations: [mdx()],
   markdown: {
+    processor: unified({
+      remarkPlugins: [remarkMath],
+      rehypePlugins: [
+        [
+          rehypeMermaid,
+          {
+            strategy: 'inline-svg',
+            mermaidConfig: {
+              theme: 'neutral',
+            },
+          },
+        ],
+        rehypeMathjax,
+      ],
+    }),
     syntaxHighlight: {
       type: 'shiki',
       excludeLangs: ['mermaid'],
@@ -19,18 +35,5 @@ export default defineConfig({
       },
       wrap: true,
     },
-    remarkPlugins: [remarkMath],
-    rehypePlugins: [
-      [
-        rehypeMermaid,
-        {
-          strategy: 'inline-svg',
-          mermaidConfig: {
-            theme: 'neutral',
-          },
-        },
-      ],
-      rehypeMathjax,
-    ],
   },
 });
